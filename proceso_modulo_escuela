@@ -1,0 +1,897 @@
+-- =====================================================================================================================
+-- SE CREA LA TABLA DE ESCUELA BASICA
+-- =====================================================================================================================
+DROP TABLE IF EXISTS escuela_basica;
+CREATE TABLE escuela_basica(
+  domicilio text,
+  colonia text,
+  alcaldia text,
+  tel text,
+  cp text,
+  x text,
+  y text,
+  alum_2018 text,
+  aulas_2018 text,
+  num_turnos_inmueble text,
+  asignacion_aulas text,
+  asignacion_alumnos text,
+  asignacion_base text,
+  asignacion_total_2018 text,
+  asignacion_total_2019_20124 text,
+  monto_aula text,
+  monto_alumno text,
+  base text
+);
+
+COPY escuela_basica FROM '/home/gesif/Desktop/modulo_escuelas/archivos_csv/escuela_basica.csv' CSV HEADER ;
+
+-- CONSULTA TABLA ESCUELA
+SELECT * FROM escuela_basica;
+
+-- LONGITUD DEL TELEFONO
+SELECT length(tel),count(1) FROM escuela_basica GROUP BY  length(tel);
+-- length	count
+-- null 	85
+-- 7	    1
+-- 8	    2562
+-- 1	    35
+-- 6	    1
+
+-- LONGITUD DE 7
+SELECT * FROM escuela_basica WHERE length(tel) = 7;
+-- LONGITUD DE 8
+SELECT * FROM escuela_basica WHERE length(tel) = 8;
+-- LONGITUD DE 1
+SELECT * FROM escuela_basica WHERE length(tel) = 1;
+-- LONGITUD DE 6
+SELECT * FROM escuela_basica WHERE length(tel) = 6;
+
+-- =====================================================================================================================
+-- ACTUALIZACION A LOS CAMPOS DE TELEFONO
+-- =====================================================================================================================
+UPDATE escuela_basica SET tel = '0' WHERE length(tel) = 6;
+UPDATE escuela_basica SET tel = '0' WHERE length(tel) IS NULL;
+UPDATE escuela_basica SET tel = lpad(tel,8,'5') WHERE length(tel) = 7;
+
+-- =====================================================================================================================
+-- ACTUALIZACION A LOS CAMPOS DE MONTOS
+-- =====================================================================================================================
+UPDATE escuela_basica
+SET asignacion_alumnos = replace(asignacion_alumnos,'$','')
+    ,asignacion_base = replace(asignacion_base,'$','')
+    ,asignacion_total_2018 = replace(asignacion_total_2018,'$','')
+    ,asignacion_total_2019_20124 = replace(asignacion_total_2019_20124,'$','')
+    ,asignacion_aulas = replace(asignacion_aulas,'$','')
+    ,monto_alumno = replace(monto_alumno,'$','')
+    ,monto_aula = replace(monto_aula,'$','')
+    ,base = replace(base,'$','')
+;
+
+UPDATE escuela_basica
+SET asignacion_alumnos = replace(asignacion_alumnos,',','')
+  ,asignacion_base = replace(asignacion_base,',','')
+  ,asignacion_total_2018 = replace(asignacion_total_2018,',','')
+  ,asignacion_total_2019_20124 = replace(asignacion_total_2019_20124,',','')
+  ,asignacion_aulas = replace(asignacion_aulas,',','')
+  ,monto_alumno = replace(monto_alumno,',','')
+  ,monto_aula = replace(monto_aula,',','')
+  ,base = replace(base,',','')
+;
+
+UPDATE escuela_basica
+SET asignacion_alumnos = replace(asignacion_alumnos,'.00','')
+  ,asignacion_base = replace(asignacion_base,'.00','')
+  ,asignacion_total_2018 = replace(asignacion_total_2018,'.00','')
+  ,asignacion_total_2019_20124 = replace(asignacion_total_2019_20124,'.00','')
+  ,asignacion_aulas = replace(asignacion_aulas,'.00','')
+  ,monto_alumno = replace(monto_alumno,'.00','')
+  ,monto_aula = replace(monto_aula,'.00','')
+  ,base = replace(base,'.00','')
+;
+
+-- LONGITUD DEL CP
+SELECT length(cp), count(1) FROM escuela_basica GROUP BY length(cp);
+
+-- length	count
+-- null 	22
+-- 1    	63
+-- 4    	1845
+-- 5    	754
+
+-- LONGIUTD 1
+SELECT  * FROM escuela_basica WHERE length(cp) = 1;
+-- LONGIUTD 4
+SELECT  * FROM escuela_basica WHERE length(cp) = 4;
+
+-- =====================================================================================================================
+-- ACTUALIZACION AL CP
+-- =====================================================================================================================
+UPDATE escuela_basica SET cp = lpad(cp,5,'0') WHERE length(cp) = 4;
+UPDATE escuela_basica SET cp = '0' WHERE length(cp) IS NULL;
+
+-- =====================================================================================================================
+-- ACTUALIZAMOS LA ALCALDIA
+-- =====================================================================================================================
+UPDATE escuela_basica
+SET alcaldia = 'LA ' || alcaldia
+WHERE alcaldia = 'MAGDALENA CONTRERAS';
+
+-- =====================================================================================================================
+-- ACTUALIZACION ESPACIOS EN BLANCO DE LA ALCALDIA
+-- =====================================================================================================================
+UPDATE  escuela_basica SET alcaldia = TRIM(alcaldia);
+
+-- =====================================================================================================================
+-- ACTUALIZACION DE LAS COLONIAS EN BLANCO DE LA ALCALDIA
+-- =====================================================================================================================
+UPDATE escuela_basica SET domicilio ='JOHN F KENNEDY NO 1' WHERE domicilio = 'JOHN F  KENNEDY NO 1';
+UPDATE escuela_basica SET domicilio ='AV. DEL PEÑON NO. 49' WHERE domicilio = 'AV. DEL PENON NO. 49';
+UPDATE escuela_basica SET domicilio = TRIM(domicilio);
+
+-- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
+--                                      PROCESO PARA LA TABLA DE BASICA_CCT                                         --
+-- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
+
+-- =====================================================================================================================
+-- SE CREA LA TALBA DE BASICA_CCT
+-- =====================================================================================================================
+
+DROP TABLE IF EXISTS basica_cct_x_inmueble;
+CREATE TABLE basica_cct_x_inmueble (
+ domicilio text,
+ cct text,
+ nombre_cct text,
+ nivel text,
+ turno text,
+ recuento text,
+ num_alumnos text
+);
+COPY basica_cct_x_inmueble FROM '/home/gesif/Desktop/modulo_escuelas/archivos_csv/basica_cct_inmueble.csv' CSV HEADER ;
+
+-- CONSULTA PARA LAS ESCUELAS
+SELECT * FROM basica_cct_x_inmueble;
+
+-- =====================================================================================================================
+-- ACTUALIZACION DE LAS COLONIAS EN BLANCO DE LA ALCALDIA
+-- =====================================================================================================================
+UPDATE basica_cct_x_inmueble SET domicilio = TRIM(domicilio);
+-- =====================================================================================================================
+-- ACTUALIZACION DE ALGUNOS NOMBRES PARA EL PROCESO DE ACTUALIZAR EL DOMICILIO
+-- =====================================================================================================================
+UPDATE basica_cct_x_inmueble SET nombre_cct = replace(nombre_cct,'.','')
+WHERE nombre_cct IN ('PROFR. VICENTE V YBARRA','DR. EDUARDO LICEAGA','PROFR. MAXIMILIANO MOLINA FUENTE','PROFR. MANUEL S HIDALGO');
+SELECT * FROM basica_cct_x_inmueble WHERE nombre_cct = 'PROFR MAXIMILIADO MOLINA FUENTE';
+
+-- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
+--                                      PROCESO PARA LA TABLA DE PROMOTORES                                         --
+-- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
+-- =====================================================================================================================
+-- SE CREA LA TALBA DE PROMOTORES
+-- =====================================================================================================================
+
+DROP TABLE IF EXISTS promotores_mail_celular;
+CREATE TABLE promotores_mail_celular (
+  nombre text,
+  segundo_nombre text,
+  apellido_paterno text,
+  apellido_materno text,
+  alcaldia text,
+  correo_electronico text,
+  celular text,
+  clave text,
+  nombre_completo text
+);
+COPY promotores_mail_celular FROM '/home/gesif/Desktop/modulo_escuelas/archivos_csv/promotores_email_celular.csv' CSV HEADER;
+
+-- CONSULTA PARA LOS PROMOTORES
+SELECT * FROM promotores_mail_celular;
+
+-- LONGITUD DEL TELEFONO
+SELECT length(celular),count(1) FROM promotores_mail_celular GROUP BY  length(celular);
+
+-- length	count
+-- 10	    374
+-- 11	    18
+-- 8	    1
+
+-- LONGITUD DE 11
+SELECT * FROM promotores_mail_celular WHERE length(celular) = 11;
+
+-- LONGITUD DE 8
+SELECT * FROM promotores_mail_celular WHERE length(celular) = 8;
+
+-- =====================================================================================================================
+-- Se eliminan espacios intermedios
+-- =====================================================================================================================
+
+UPDATE promotores_mail_celular
+ SET celular = regexp_replace(celular,'\s+','','g')
+;
+
+-- =====================================================================================================================
+-- Se elimina el caracter punto
+-- =====================================================================================================================
+
+UPDATE promotores_mail_celular
+SET celular = regexp_replace(celular,'\.','','g')
+;
+
+-- =====================================================================================================================
+-- Se antepone el 55 a los registros con longitud 8
+-- =====================================================================================================================
+
+UPDATE promotores_mail_celular
+  SET celular = lpad(celular,'10','55')
+WHERE length(celular) =  8
+;
+
+UPDATE promotores_mail_celular
+SET nombre = trim(nombre),segundo_nombre = trim(segundo_nombre)
+    ,apellido_paterno = trim(apellido_paterno), apellido_materno= trim(apellido_materno)
+    ,alcaldia=trim(Upper(alcaldia))
+;
+
+SELECT  * FROM promotores_mail_celular;
+
+-- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
+--                                      PROCESO PARA LA TABLA DE PROMOTORES                                         --
+-- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
+
+-- =====================================================================================================================
+-- Se crea la tabla de clave_promotor y se carga del excel
+-- =====================================================================================================================
+
+DROP TABLE IF EXISTS clave_promotor_cct_direccion;
+CREATE TABLE clave_promotor_cct_direccion(
+ promotor1 text,
+ promotor2 text,
+ num text,
+ plantel text,
+ clavecct text,
+ nivel text,
+ nombre_cct text,
+ turno text,
+ domicilio text,
+ colonia text,
+ alcaldia text,
+ alumnos_2018_2019 text,
+ telefono text,
+ cp text,
+ zona text,
+ aulas text,
+ alumnos_inmueble text
+);
+COPY clave_promotor_cct_direccion FROM '/home/gesif/Desktop/modulo_escuelas/archivos_csv/clave_promotor_cct_direccion.csv' CSV HEADER;
+
+-- Consulta para el cp
+SELECT count(1), length(cp) FROM clave_promotor_cct_direccion GROUP BY  length(cp);
+
+SELECT * FROM clave_promotor_cct_direccion WHERE  length(cp) = 1;
+
+-- =====================================================================================================================
+-- SE LE AGREGA UN 0 A LA IZQUIERDA A LOS CP CON LONGITUD 4
+-- =====================================================================================================================
+
+UPDATE clave_promotor_cct_direccion SET cp = lpad(cp,5,'0') WHERE length(cp) = 4;
+
+-- =====================================================================================================================
+-- SE LE AGREGA UN 0 LOS CP NULL
+-- =====================================================================================================================
+
+UPDATE clave_promotor_cct_direccion SET cp = '0' WHERE length(cp) IS NULL;
+
+-- =====================================================================================================================
+-- ACTUALIZAMOS LA ALCALDIA
+-- =====================================================================================================================
+
+UPDATE clave_promotor_cct_direccion
+SET alcaldia = 'LA ' || alcaldia
+WHERE alcaldia = 'MAGDALENA CONTRERAS  ';
+
+-- =====================================================================================================================
+-- SE ELIMINAN LOS ESPACIOS PARA DOMICILIO Y ALCALDIA PARA LAS COMPARACIONES
+-- =====================================================================================================================
+UPDATE clave_promotor_cct_direccion
+SET alcaldia = TRIM(alcaldia)
+    ,domicilio= TRIM(domicilio)
+    ,nombre_cct = trim(nombre_cct)
+    ,turno =  trim(turno)
+    ,colonia = trim(colonia)
+;
+
+SELECT * FROM clave_promotor_cct_direccion;
+
+-- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
+--                                      PROCESO PARA GENERAR LA TABLA DE SCHOOLS                                    --
+-- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
+CREATE INDEX escuela_basica_domicilio ON escuela_basica (domicilio);
+CREATE INDEX escuela_basica_municipio ON escuela_basica (alcaldia);
+CREATE INDEX basica_cct_x_inmueble_domicilio ON basica_cct_x_inmueble (domicilio);
+
+SELECT * FROM escuela_basica;
+SELECT * FROM basica_cct_x_inmueble;
+SELECT * FROM municipalities;
+SELECT * FROM clave_promotor_cct_direccion;
+
+SELECT COUNT(1), alcaldia FROM escuela_basica GROUP BY  alcaldia;
+
+-- registros 2684
+-- DELETE FROM schools;
+-- ALTER SEQUENCE schools_id_seq RESTART  1;
+-- =====================================================================================================================
+-- SE INSERTA EN LA TABLA DE SCHOOLS
+-- =====================================================================================================================
+
+INSERT INTO schools(name,address,colony,municipality_id,phone,postal_code,lt,lng,point)
+  (
+    SELECT
+     bas.nombre_cct               as name
+     ,bas.domicilio                as address
+     ,esc.colonia                  as colony
+     ,COALESCE(mun.id,0)           as municipality_id
+     ,COALESCE(esc.tel::bigint, 0) as phone
+     ,esc.cp                       as postal_code
+     ,esc.x::double precision      as lt
+     ,esc.y::double precision      as lng
+     ,st_setsrid(st_makepoint(esc.x::double precision, esc.y::double precision), 4326)
+    FROM escuela_basica esc
+    LEFT JOIN basica_cct_x_inmueble bas
+     ON esc.domicilio = bas.domicilio
+    LEFT JOIN municipalities mun
+     ON esc.alcaldia = mun.municipality
+    -- WHERE esc.domicilio LIKE 'AV. DEL PENON NO. 49' -- 'MORELOS'
+    -- WHERE bas.cct IN ('09DBA0178Y','09DBS0034A')
+  )
+;
+SELECT * FROM schools;
+
+-- =====================================================================================================================
+-- CONSULTA PARA OBTENER EL CCT Y EL DOMICILIO DE LAS SECUNDARIAS TECNICAS
+-- =====================================================================================================================
+
+SELECT
+ *
+ ,(select domicilio from basica_cct_x_inmueble bas WHERE bas.nombre_cct = nul.nombre_cct and bas.nivel = nul.nivel and bas.turno = 'MATUTINO')
+ ,(select cct from basica_cct_x_inmueble bas WHERE bas.nombre_cct = nul.nombre_cct and bas.nivel = nul.nivel and bas.turno = 'MATUTINO')
+FROM basica_cct_domicilio_null nul
+WHERE nul.cct is null;
+;
+
+-- =====================================================================================================================
+-- SE CREA LA TABLA basica_cct_domicilio_null PARA OBTENER EL NUMERO DE REGISTROS NULL
+-- =====================================================================================================================
+
+-- REGISTROS QUE SON NULL 1200
+DROP TABLE IF EXISTS basica_cct_domicilio_null;
+
+-- SE INCLUYE EL MUNICIPIO
+CREATE TABLE basica_cct_domicilio_null AS
+(
+SELECT
+ nul.*
+ ,mun.id as municipio_id
+FROM basica_cct_x_inmueble nul
+LEFT JOIN escuela_basica bas
+ ON nul.domicilio = bas.domicilio
+LEFT JOIN clave_promotor_cct_direccion cla
+ ON cla.clavecct = nul.cct
+INNER JOIN municipalities mun
+ ON mun.municipality = cla.alcaldia
+WHERE nul.domicilio IS NULL
+)
+;
+
+-- Se hace el insert para las escuelas secundarias tenicas
+INSERT INTO basica_cct_domicilio_null (domicilio, nombre_cct,nivel,turno,recuento,num_alumnos)
+ (
+    SELECT
+      domicilio,nombre_cct,nivel,turno,recuento,num_alumnos
+    FROM basica_cct_x_inmueble
+    WHERE cct IS NULL
+ )
+;
+
+-- =====================================================================================================================
+-- SE ACTUALIZA LAS ESCUELAS SECUNDARIAS TECNICAS
+-- =====================================================================================================================
+-- SELECT * FROM basica_cct_x_inmueble WHERE cct IS NULL;
+UPDATE basica_cct_x_inmueble
+SET domicilio = b.domicilio
+  , cct = b.cct
+FROM (
+       SELECT
+         nombre_cct
+            ,(select domicilio from basica_cct_x_inmueble bas WHERE bas.nombre_cct = nul.nombre_cct and bas.nivel = nul.nivel and bas.turno = 'MATUTINO') as domicilio
+            ,(select cct from basica_cct_x_inmueble bas WHERE bas.nombre_cct = nul.nombre_cct and bas.nivel = nul.nivel and bas.turno = 'MATUTINO') as cct
+       FROM basica_cct_domicilio_null nul
+       WHERE nul.cct is null
+     ) as b
+WHERE b.nombre_cct = basica_cct_x_inmueble.nombre_cct
+AND basica_cct_x_inmueble.cct IS NULL;
+;
+
+-- =====================================================================================================================
+-- SE ACTUALIZA LAS ESCUELAS SECUNDARIAS TECNICAS EN LA TABLA DE DOMICILIOS NULL
+-- =====================================================================================================================
+
+UPDATE basica_cct_domicilio_null
+SET domicilio = b.domicilio
+, cct = b.cct
+FROM (
+       SELECT
+       nombre_cct
+       ,(select domicilio from basica_cct_x_inmueble bas WHERE bas.nombre_cct = nul.nombre_cct and bas.nivel = nul.nivel and bas.turno = 'MATUTINO') as domicilio
+       ,(select cct from basica_cct_x_inmueble bas WHERE bas.nombre_cct = nul.nombre_cct and bas.nivel = nul.nivel and bas.turno = 'MATUTINO') as cct
+       FROM basica_cct_domicilio_null nul
+       WHERE nul.cct is null
+       ) as b
+WHERE b.nombre_cct = basica_cct_domicilio_null.nombre_cct
+;
+
+DELETE FROM basica_cct_domicilio_null WHERE domicilio IS NOT NULL;
+
+-- =====================================================================================================================
+-- SE CREA UN STORED PARA ACTUALIZAR LAS DIRECCIONES DE LOS CAMPOS NULL DE LA TABLA DE basica_cct_domicilio_null
+-- EXISTEN 6 TIPO DE CCT
+----------------------
+-- substring |	count
+----------------------
+--  09DES	  |   186
+--  09DBS	  |   53
+--  09DTV	  |   1
+--  09DJN	  |   200
+--  09DSN	  |   24
+--  09DPR	  |   665
+-- =====================================================================================================================
+SELECT substring(cct FROM 1 FOR 5),count(1) FROM basica_cct_domicilio_null GROUP BY substring(cct FROM 1 FOR 5);
+
+CREATE OR REPLACE FUNCTION update_domicilio_null () RETURNS VOID AS $actualiza_domicilio$
+  DECLARE
+    var_query TEXT := 'SELECT domicilio FROM  basica_cct_x_inmueble WHERE predicado';
+    var_cp_query TEXT;
+    var_domicilio TEXT;
+    var_substring_cct TEXT;
+    var_clause_where TEXT;
+    var_update_registros INT := 0;
+    rec_basica_cct RECORD;
+    cur_basica_cct CURSOR FOR SELECT * FROM basica_cct_domicilio_null WHERE substring(cct FROM 1 FOR 5) NOT IN('09DSN','09DTV') ;
+BEGIN
+    OPEN cur_basica_cct;
+      LOOP
+        FETCH cur_basica_cct INTO rec_basica_cct;
+        EXIT WHEN NOT FOUND;
+        var_substring_cct := substring(rec_basica_cct.cct FROM 1 FOR 5);
+        var_cp_query := var_query;
+--      Los posibles casos son 09DES, 09DBS, 09DJN y 09DPR
+        IF var_substring_cct  = '09DES' THEN  -- Se construye el cct de mi substring se concatena en 0 y se concatena con los siguientes 3 caracteres haciendo un like
+          var_clause_where := $$cct LIKE '$$ || var_substring_cct || '0' || substring(rec_basica_cct.cct FROM 7 FOR 3) || $$%' AND $$
+                              || $$nombre_cct = '$$ || rec_basica_cct.nombre_cct || $$' AND nivel = '$$ || rec_basica_cct.nivel ||$$'$$ ;
+        ELSIF var_substring_cct = '09DBS' THEN -- Del substring original se reemplaza la S por una A y el nivel se cambia por ADULTOS-PRIMARIA
+          var_clause_where := $$cct LIKE '$$ || replace(var_substring_cct,'S','A') || $$%' AND nombre_cct = '$$ || rec_basica_cct.nombre_cct
+                              || $$' AND nivel= 'ADULTOS-PRIMARIA'$$;
+        ELSIF var_substring_cct = '09DJN' THEN --Para este caso se construye nuevamente el query ya que se necesita comparar con el municipio
+          var_cp_query := 'SELECT nul.domicilio FROM  basica_cct_x_inmueble nul predicado';
+          var_clause_where := $$INNER JOIN escuela_basica bas ON nul.domicilio = bas.domicilio $$ ||
+                              $$INNER JOIN clave_promotor_cct_direccion cla ON nul.cct = cla.clavecct $$||
+                              $$INNER JOIN municipalities mun ON mun.municipality = cla.alcaldia $$ ||
+                              $$WHERE  substring(cct FROM 1 FOR 5)= '09DJN' AND nul.nombre_cct = '$$ || rec_basica_cct.nombre_cct ||
+                              $$' AND mun.id = $$ || rec_basica_cct.municipio_id;
+        ELSIF var_substring_cct = '09DPR' THEN -- Existen 3 casos para cuando es el 09DPR primero se tiene que comparar con el mismo para saber si hay coincidencia
+          var_cp_query := 'SELECT nul.domicilio FROM  basica_cct_x_inmueble nul predicado';
+          var_clause_where := $$INNER JOIN escuela_basica bas ON nul.domicilio = bas.domicilio $$ ||
+                              $$INNER JOIN clave_promotor_cct_direccion cla ON nul.cct = cla.clavecct $$||
+                              $$INNER JOIN municipalities mun ON mun.municipality = cla.alcaldia $$ ||
+                              $$WHERE cct LIKE '$$ || var_substring_cct || $$%' AND nul.nombre_cct = '$$ || rec_basica_cct.nombre_cct ||
+                              $$' AND nul.nivel = '$$ || rec_basica_cct.nivel ||$$' AND mun.id = $$ || rec_basica_cct.municipio_id;
+        END IF;
+        var_cp_query := replace(var_cp_query,'predicado',var_clause_where);
+--         RAISE INFO '%',var_cp_query;
+        EXECUTE var_cp_query INTO var_domicilio;
+        RAISE INFO 'Domicilio >>>>>: %',var_domicilio;
+        -- En caso de que no exista el domicilio y el substring sea 09DPR se tiene que buscar con 09DBA y el nombre o
+        -- 09DBN con el nombre y el nivel para obtener el domicilio
+        IF var_domicilio IS NULL AND var_substring_cct = '09DPR' THEN
+          var_cp_query := var_query;
+          var_clause_where := $$substring(cct FROM 1 FOR 5) = '09DBA' AND nombre_cct = '$$|| rec_basica_cct.nombre_cct || $$' $$;
+          var_cp_query := replace(var_cp_query,'predicado',var_clause_where);
+          EXECUTE var_cp_query INTO var_domicilio;
+--           RAISE INFO 'Domicilio >>>>>: %',var_domicilio;
+          IF var_domicilio IS NULL THEN --Si todavia sigue siendo null se busca ahora por  el 09DBN , con el nombre y el mismo nivel
+            var_cp_query := replace(var_cp_query,'09DBA','09DBN');
+            var_cp_query := var_cp_query || $$ AND nivel='$$ ||rec_basica_cct.nivel || $$' $$ ;
+            EXECUTE var_cp_query INTO var_domicilio;
+            IF var_domicilio IS NULL THEN
+              RAISE INFO '%',rec_basica_cct;
+--               var_update_registros := var_update_registros + 1;
+            END IF;
+          END IF;
+        END IF;
+        IF var_domicilio IS NOT NULL THEN
+          UPDATE basica_cct_domicilio_null SET domicilio = var_domicilio
+          WHERE cct = rec_basica_cct.cct;
+          var_update_registros := var_update_registros + 1;
+        END IF;
+      END LOOP;
+    CLOSE cur_basica_cct;
+    RAISE INFO 'Registros actualizados: %',var_update_registros;
+END;
+$actualiza_domicilio$
+LANGUAGE plpgsql;
+SELECT update_domicilio_null();
+
+-- =====================================================================================================================
+-- Se acualizan los restantes a mano
+-- =====================================================================================================================
+SELECT * FROM basica_cct_domicilio_null WHERE domicilio IS NULL ;
+-- Total --> 1129
+-- Con domicilio --> 1081
+-- Domicilio  null --> 48
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'AV CONTRERAS Y TARASQUILLO PTE'
+WHERE nombre_cct = 'ATLITIC';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'AV. MORELOS No. 639 Y FERNANDO IGLESIAS CALDERON'
+WHERE nombre_cct = 'MANUEL SANDOVAL VALLARTA';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'MONEDA NO 13'
+WHERE nombre_cct = 'SANTIAGO GALAS ARCE';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'CUAUHTEMOC S/N'
+WHERE nombre_cct = 'PROFR MAXIMILIANO MOLINA FUENTE';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'EJE 10 SUR S/N ESQ ESTANISLAO RA'
+WHERE nombre_cct = 'TELESECUNDARIA 143';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'LATERAL RIO CHURUBUSCO NO 2'
+WHERE nombre_cct = 'REPUBLICA DEMOCRATICA ALEMANA';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'CALZ. MEXICO TACUBA NUM 75-A'
+WHERE nombre_cct = 'REPUBLICA DEL BRASIL';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'CALZ. MEXICO TACUBA NUM 75-B'
+WHERE nombre_cct = 'LUIS HIDALGO MONROY';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'VIADUCTO MIGUEL ALEMAN 37'
+WHERE nombre_cct = 'PROFESOR FELIX ZURITA';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'LAGO AMER Y LAGO ERNE'
+WHERE nombre_cct = 'PROFR. DN. DAVID PROSPERO CARDONA';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'MONTE CAUCASO NO 935'
+WHERE nombre_cct = 'GUSTAVO DIAZ ORDAZ';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'AV. UNIVERSIDAD S/N Y AV. CENTRA'
+WHERE nombre_cct = 'JOSE MURO MENDEZ';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'AV.SAMUEL GOMPERS Y CALLE 71'
+WHERE nombre_cct = 'ARQUELES VELA';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'LIBERTAD NO.23'
+WHERE nombre_cct = 'AÑO DE JUAREZ';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'CALZ.ERMITA IZTAPALAPA NO.1220'
+WHERE nombre_cct = 'MANUEL GAMIO';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'CAMINO VIEJO A ZAPOTITLAN S/N'
+WHERE nombre_cct = 'IMMANTI';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'GUILLERMO PRIETO S/N ESQ ANTONIO'
+WHERE nombre_cct = 'RAFAEL MOLINA BETANCOURT';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'H CONGRESO DE LA UNION NO 3536'
+WHERE nombre_cct = 'MARTIRES DE RIO BLANCO';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'PASCUAL OROZCO RECREO Y F. I. MADERO'
+WHERE nombre_cct = 'AQUILES SERDAN';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'CALLE 300 Y 309 Y AV 298-A'
+WHERE nombre_cct = 'LUIS ENRIQUE ERRO';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'PUERTO COZUMEL Y SALINA CRUZ'
+WHERE nombre_cct = 'JESUS ROMERO FLORES';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'CALZ DE GUADALUPE 424'
+WHERE nombre_cct = 'SECUNDARIA PARA TRABAJADORES 39';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'TRANSVAL Y DAMASCO S/N'
+WHERE nombre_cct = 'PLAN DE AYUTLA';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'SERAPIO RENDON NO 48'
+WHERE nombre_cct = 'FLORENCIO M DEL CASTILLO';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'SIEMPREVIVA S/N.'
+WHERE nombre_cct = 'FELIPE CARRILLO PUERTO';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'AV DEL RECREO NO 1824'
+WHERE nombre_cct = 'ABRAHAM LINCOLN';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'CALZ DE LA VIGA NO 97'
+WHERE nombre_cct = 'ANTONIA ARELLANO LUNA';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'REGINA NO 86'
+WHERE nombre_cct = 'FRAY PEDRO DE GANTE';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'PEQA Y PEQA NO 38'
+WHERE nombre_cct = 'ENRIQUE PEZTALOZZI';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'AV MEXICO 68 S/N Y LIBERTAD'
+WHERE nombre_cct = 'ENRIQUE AGUILAR GONZALEZ';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'MARCOS H PULIDO S/N'
+WHERE nombre_cct = 'VALERIO TRUJANO';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'CORAS S/N ESQ CALLE MOCTEZUMA'
+WHERE nombre_cct = 'REPUBLICA DE SUAZILANDIA';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'AV COYOACAN Y SAN BORJA'
+WHERE nombre_cct = 'ANGELA PERALTA';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'RABAUL Y NORTE 87 S/N'
+WHERE nombre_cct = 'CENTENARIO DE LA CONSTITUCION DEL 57';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'BATALLA 5 DE MAYO Y F. LORETO S/N'
+WHERE nombre_cct = 'JUAN RULFO';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'AV MORELOS S/N-A'
+WHERE nombre_cct = 'GRAL GORDIANO GUZMAN';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'YAQUIS NO 2'
+WHERE nombre_cct = 'CLUB DE LEONES NUM. 1';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'AV MANUEL SALAZAR Y FRANCISCO SA'
+WHERE nombre_cct = 'ESCUELA SECUNDARIA DE INNOVACION PEDAGOGICA "TU ESCUELA EN EL HOSPITAL"';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'CAMINO DE RECREO NO 40'
+WHERE nombre_cct = 'PIONEROS DEL COOPERATIVISMO';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'AV CUITLAHUAC Y CEYLAN'
+WHERE nombre_cct = 'SECUNDARIA PARA TRABAJADORES 33';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'AV AZCAPOTZALCO NO 574'
+WHERE nombre_cct = 'MARTIRES DE LA LIBERTAD';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'JUAREZ NUM 38'
+WHERE nombre_cct = 'SECUNDARIA PARA TRABAJADORES 55';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'AV VASCO DE QUIROGA NO 1562'
+WHERE nombre_cct = 'CANDELARIO HUIZAR GARCIA';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'PUENTE DE IXTLA 21'
+WHERE nombre_cct = 'PUENTE DE IXTLA';
+
+UPDATE basica_cct_domicilio_null SET domicilio = 'ROSA CHINA Y ALTA TENSION'
+WHERE nombre_cct = 'ENRIQUE CONRADO REBSAMEN';
+
+-- SELECT substring(cct FROM 1 FOR 5),nombre_cct,count(1) FROM basica_cct_x_inmueble WHERE substring(cct FROM 1 FOR 5)= '09DJN' GROUP BY substring(cct FROM 1 FOR 5),nombre_cct ORDER BY count(1) DESC;
+-- SELECT substring(cct FROM 1 FOR 5),nombre_cct,count(1) FROM basica_cct_x_inmueble WHERE substring(cct FROM 1 FOR 5)= '09DPR' GROUP BY substring(cct FROM 1 FOR 5),nombre_cct ORDER BY count(1) DESC;
+
+SELECT nul.domicilio,nul.nombre_cct FROM basica_cct_domicilio_null nul
+INNER JOIN basica_cct_x_inmueble bas
+ ON nul.domicilio = bas.domicilio
+WHERE bas.nombre_cct = 'REPUBLICA POPULAR SOCIALISTA DE ALBANIA'
+;
+
+SELECT * FROM basica_cct_x_inmueble;
+
+SELECT COUNT(1) FROM basica_cct_x_inmueble
+--WHERE domicilio IS NULL
+;
+
+-- =====================================================================================================================
+-- Se acualizan los registros de la tabla basica_cct_x_inmueble para hacer el insert en la tabla school_shift
+-- =====================================================================================================================
+UPDATE basica_cct_x_inmueble SET domicilio = b.domicilio
+FROM
+( SELECT
+   nul.domicilio,nul.nombre_cct
+  FROM basica_cct_domicilio_null nul
+  INNER JOIN basica_cct_x_inmueble bas
+   ON nul.domicilio = bas.domicilio
+)as b
+WHERE basica_cct_x_inmueble.domicilio IS NULL
+AND b.nombre_cct = basica_cct_x_inmueble.nombre_cct
+;
+
+-- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
+--                                 PROCESO PARA GENERAR LA TABLA DE SCHOOL_SHIFT                                    --
+-- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
+-- =====================================================================================================================
+-- SE INSERTA EN LA TABLA DE SCHOOL_SHIFT
+-- =====================================================================================================================
+DELETE FROM school_shift;
+ALTER SEQUENCE school_shift_id_seq RESTART 1;
+INSERT INTO school_shift (school_id,key,number_student_shift,shift_id,level_id)
+  (
+    SELECT
+     sch.id
+     ,bas.cct
+     ,bas.num_alumnos ::int
+     ,shi.id as shift_id
+     ,lev.id as level_id
+    FROM basica_cct_x_inmueble bas
+    LEFT JOIN schools sch
+     ON sch.address = bas.domicilio
+    INNER JOIN levels lev
+     ON lev.level = bas.nivel
+    LEFT JOIN shifts shi
+     ON shi.shift = bas.turno
+    ORDER BY shi.id
+  )
+;
+
+-- SELECT * FROM basica_cct_x_inmueble WHERE nombre_cct LIKE 'ESCUELA SECUNDARIA TECNICA%' ORDER BY  nombre_cct;
+-- SELECT length(CELULAR),count(1) FROM promotores_mail_celular GROUP BY  length(celular);
+
+-- ////////////////////////////// para actulizar e insertar en produccion ///////////////////////////////////////// --
+-- =====================================================================================================================
+-- Se crea una tabla con los nuevos usuarios de promotores para poderlos insertar en la tabla de users en produccion
+-- ====================================================================================================================
+DROP TABLE IF EXISTS new_users_promoters ;
+CREATE TABLE new_users_promoters AS (
+  SELECT pro.*
+  FROM promotores_mail_celular pro
+  LEFT JOIN users use
+   ON use.email = pro.correo_electronico
+  WHERE use.id IS NULL
+)
+;
+
+CREATE TABLE update_users_name_pat_mat AS (
+  SELECT use.* FROM promotores_mail_celular pro
+  INNER JOIN users use
+   ON pro.correo_electronico = use.email
+)
+;
+
+-- ACTULIZAR LOS NOMBRES CON APELLIDO PATERNO Y MATERNO
+UPDATE update_users_name_pat_mat
+SET name = concat(pro.nombre,' ',pro.segundo_nombre)
+    ,paterno = pro.apellido_paterno
+    ,materno = pro.apellido_materno
+FROM promotores_mail_celular pro
+WHERE pro.correo_electronico = email
+;
+
+SELECT * FROM update_users_name_pat_mat WHERE email = 'flupe2722@gmail.com';
+SELECT * FROM users WHERE email='flupe2722@gmail.com';
+
+-- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
+
+
+
+
+
+-- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
+--                               PROCESO PARA INSERTAR EN LA TABLA DE PROMOTORES                                    --
+-- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
+-- =====================================================================================================================
+-- Consulta para obtener los correos duplicados
+-- =====================================================================================================================
+
+SELECT COUNT(1),correo_electronico FROM promotores_mail_celular GROUP BY  correo_electronico HAVING count(1) > 1;
+--    correo_electronico
+-- -------------------------
+--  saryperez291@gmail.com
+--  macri_001@hotmail.com
+
+-- =====================================================================================================================
+-- Se eliminan  los registros que tienen mas de un mail
+-- =====================================================================================================================
+DELETE FROM promotores_mail_celular
+WHERE correo_electronico IN (
+  SELECT correo_electronico
+  FROM promotores_mail_celular
+  GROUP BY  correo_electronico
+  HAVING count(1) > 1
+  )
+;
+
+-- Num registros 389
+SELECT count(*) FROM promotores_mail_celular;
+
+-- Num de clave promotorr 4002
+SELECT count(*) FROM clave_promotor_cct_direccion;
+
+-- Num de registros 567
+SELECT count(*) FROM users;
+
+-- Registros en comun con promotores mail y users 355
+SELECT count(*) FROM promotores_mail_celular pro
+INNER JOIN users use
+ ON pro.correo_electronico = use.email
+;
+
+-- =====================================================================================================================
+-- Se obtienen los registros que no estan en la tabla de users
+-- =====================================================================================================================
+
+SELECT
+ pro.*
+ ,'|'
+ ,use.id
+FROM promotores_mail_celular pro
+LEFT JOIN users use
+ ON use.email = pro.correo_electronico
+WHERE use.id IS NULL
+;
+
+SELECT * FROM promoters;
+-- =====================================================================================================================
+--- Se inserta en la tabla de users aquellos promotores que no estan
+-- =====================================================================================================================
+INSERT INTO users (name,email,paterno,materno,phone,password)
+  (
+    SELECT
+     pro.nombre
+     ,pro.correo_electronico
+     ,pro.apellido_paterno
+     ,pro.apellido_materno
+     ,pro.celular::bigint
+     ,b.password
+    FROM promotores_mail_celular pro
+    LEFT JOIN users use
+     ON use.email = pro.correo_electronico
+    ,(SELECT password FROM users WHERE email = 'admin@territorial') as b
+    WHERE use.id IS NULL
+  )
+;
+
+-- =====================================================================================================================
+--- Se inserta en la tabla de promotores
+-- =====================================================================================================================
+INSERT INTO promoters(user_id,fidegar_key,created_by)
+  (
+    SELECT
+     use.id as user_id
+     ,pro.clave
+     ,71
+    FROM users use
+    INNER JOIN promotores_mail_celular pro
+     ON use.email = pro.correo_electronico
+  )
+;
+-- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
+--                               PROCESO PARA INSERTAR EN LA TABLA DE SCHOOL_USER                                   --
+-- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
+
+-- ====================================================================================================================
+-- Insert para la tabla de school_user para el promotor 1
+-- ====================================================================================================================
+INSERT INTO school_user (promoter_id, school_key, school_shift_id)
+(
+  SELECT
+   mot.id as promoter_id_1
+   ,sch.key
+   ,sch.id as shift_school_id
+  FROM promotores_mail_celular pro
+  INNER JOIN clave_promotor_cct_direccion cla
+   ON pro.clave = cla.promotor1
+  INNER JOIN school_shift sch
+   ON sch.key = cla.clavecct
+  INNER JOIN promoters mot
+   ON mot.fidegar_key = cla.promotor1
+  ORDER BY sch.key
+)
+;
+
+-- ====================================================================================================================
+-- Insert para la tabla de school_user para el promotor 2
+-- ====================================================================================================================
+INSERT INTO school_user (promoter_id, school_key, school_shift_id)
+(
+  SELECT
+    mot.id as promoter_id_2
+    ,sch.key
+    ,sch.id as shift_school_id
+  FROM promotores_mail_celular pro
+  INNER JOIN clave_promotor_cct_direccion cla
+   ON pro.clave = cla.promotor2
+  INNER JOIN school_shift sch
+   ON sch.key = cla.clavecct
+  INNER JOIN promoters mot
+   ON mot.fidegar_key = cla.promotor2
+  ORDER BY sch.key
+)
+;
+
+SELECT * FROM shifts;
