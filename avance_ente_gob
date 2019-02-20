@@ -1,0 +1,864 @@
+SELECT * FROM structures;
+
+-- Consulta para obtener las primeras 10 estructuras
+SELECT * FROM structures WHERE active :: int = 1 ORDER BY id LIMIT 10
+
+-- Consulta para obtener las primeras 10 metas
+SELECT * FROM goals WHERE active = true ORDER BY id LIMIT 10;
+
+--Consulta para obtener los 10 primeros proyectos
+SELECT * FROM projects WHERE active = true ORDER BY  id
+--LIMIT  10
+;
+
+--Consulta para obtener las metas y proyectos
+SELECT * FROM owner_projects LIMIT 10;
+
+-- project_id | structure_id | created_at | updated_at
+-- ------------+--------------+------------+------------
+--           1 |            6 |            |
+--           2 |            6 |            |
+
+-- Consulta para obtener el estatus
+SELECT * FROM statuses ORDER BY id;
+
+-- REGISTTROS 342
+SELECT COUNT(1) FROM owner_projects;
+
+-- REGISTROS 342
+-- active = true 287
+SELECT COUNT(1) FROM projects
+WHERE active = true
+;
+
+-- REGSITROS 434
+-- active = true 387
+SELECT
+ COUNT(1)
+FROM structures
+WHERE active = true
+;
+
+-- Consulta para obtener el numero de estructuras
+SELECT
+ structure_id
+ ,count(1)
+FROM owner_projects
+GROUP BY
+ structure_id
+ORDER BY
+ structure_id
+ ,count(1) ASC
+;
+
+-- REGISTROS 287
+-- structure_id = 41 --> 35
+-- active = true --> 19
+SELECT
+ pro.*
+ ,'|' as " "
+ ,str.*
+ ,'|' as " "
+ ,goa.*
+ ,'|' as " "
+ ,act.*
+FROM owner_projects own
+INNER JOIN projects pro
+ ON pro.id = own.project_id
+INNER JOIN structures str
+ ON str.id = own.structure_id
+INNER JOIN goals goa
+ ON goa.project_id = pro.id
+INNER JOIN activities act
+ ON act.project_id = pro.id
+ AND act.goal_id = goa.id
+WHERE pro.active = true
+ AND str.active = true
+ AND goa.active = true
+ AND act.active = true
+ AND str.id = 41 -- Sistema integral familias
+;
+
+-- Consulta para obtener el numero de estructuras con sus estatus
+SELECT
+ str.structure as "estructura"
+ ,str.id
+ ,COUNT (1) as "num_proyectos"
+ ,pro.status_id as "estatus"
+FROM owner_projects own
+ INNER JOIN projects pro
+ON pro.id = own.project_id
+ INNER JOIN structures str
+ ON str.id = own.structure_id
+INNER JOIN statuses sta
+ ON sta.id = pro.status_id
+WHERE
+ pro.active = true
+ AND str.active = true
+ AND str.parent = 1
+ AND str.id = 38 -- Sistema integral familias
+ GROUP BY  str.structure ,pro.status_id ,str.id
+ORDER BY str.structure
+;
+
+-- Consulta para obtener las estructuras con
+-- los proyectos asociados, con padre = 1
+SELECT
+ pro.*
+ ,'|'
+ ,str.*
+FROM owner_projects own
+INNER JOIN projects pro
+ ON pro.id = own.project_id
+INNER JOIN structures str
+ ON str.id = own.structure_id
+WHERE pro.active = true
+  AND str.active = true
+  AND str.id = 38 -- Sistema integral familias
+  AND str.parent = 1
+;
+
+
+--  Consulta para obtener la informacion del total de estructuras
+-- con respecto al estatus
+SELECT
+ str.structure as "estructura"
+ ,COUNT (1) as "# programas"
+ ,SUM(CASE WHEN pro.status_id = 1 THEN 1 ELSE 0 END) as "# con_retraso"
+ ,SUM(CASE WHEN pro.status_id = 2 THEN 1 ELSE 0 END) as "# sin_avance"
+ ,SUM(CASE WHEN pro.status_id = 3 THEN 1 ELSE 0 END) as "# en_porceso"
+ ,SUM(CASE WHEN pro.status_id = 4 THEN 1 ELSE 0 END) as "# concluido"
+FROM owner_projects own
+INNER JOIN projects pro
+ ON pro.id = own.project_id
+INNER JOIN structures str
+ ON str.id = own.structure_id
+INNER JOIN statuses sta
+ ON sta.id = pro.status_id
+WHERE
+  pro.active = true
+  AND str.active = true
+  AND str.parent = 1
+--   AND str.id = 38 -- Sistema integral familias
+GROUP BY  str.structure-- ,pro.id
+ORDER BY str.structure
+;
+
+--  Se obtiene el numero de metas
+-- por estructura
+SELECT
+ str.id
+ ,str.structure
+ ,COUNT(1) as "num_metas"
+--  ,pro.id
+FROM structures str
+INNER JOIN owner_projects own
+ ON own.structure_id = str.id
+INNER JOIN projects  pro
+ ON pro.id = own.project_id
+-- LEFT JOIN goals goa
+--  ON goa.project_id = pro.id
+WHERE str.active = true
+ AND str.parent = 1
+ AND pro.active = true
+--  AND str.id = 38
+--  AND goa.active = true
+GROUP BY str.id, str.structure
+ORDER BY  str.id
+;
+
+-- Consulta para obtener el numero de
+-- actividades dependiendo de la estructura
+SELECT
+ str.id
+ ,str.structure
+ ,COUNT(1) as "num_actividades"
+FROM structures str
+INNER JOIN owner_projects own
+ ON own.structure_id = str.id
+INNER JOIN projects  pro
+ ON pro.id = own.project_id
+INNER JOIN goals goa  -- metas
+ ON goa.project_id = pro.id
+INNER JOIN activities act
+ ON act.project_id = pro.id
+ AND act.structure_id = str.id
+ AND act.goal_id = goa.id
+WHERE str.active = true
+  AND str.parent = 1
+  AND pro.active = true
+  AND goa.active = true 
+  AND act.active = true
+GROUP BY str.id, str.structure
+ORDER BY  count(1)  DESC
+;
+
+-- Consulta para obtener el numero de tareas
+-- por estructura
+SELECT
+  str.id
+     ,str.structure
+     ,COUNT(1) as "num_metas"
+FROM structures str
+INNER JOIN owner_projects own
+ ON own.structure_id = str.id
+INNER JOIN projects  pro
+ ON pro.id = own.project_id
+LEFT JOIN goals goa  -- metas
+ ON goa.project_id = pro.id
+LEFT JOIN activities act
+ ON act.project_id = pro.id
+ AND act.structure_id = str.id
+ AND act.goal_id = goa.id
+LEFT JOIN tasks tas
+ ON tas.activity_id = act.id
+ AND tas.structure_id = str.id
+WHERE str.active = true
+  AND str.parent = 1
+  AND pro.active = true
+  AND goa.active = true
+  AND act.active = true
+ AND tas.active = true
+--   AND str.id = 38
+GROUP BY str.id, str.structure
+ORDER BY  str.id
+;
+
+-- Consulta para obtener el numero de seguimientos
+-- por estructura
+SELECT
+ str.id
+ ,str.structure
+ ,COUNT(1) as "num_metas"
+FROM structures str
+INNER JOIN owner_projects own
+ ON own.structure_id = str.id
+INNER JOIN projects  pro
+ ON pro.id = own.project_id
+LEFT JOIN goals goa  -- metas
+ ON goa.project_id = pro.id
+LEFT JOIN activities act
+ ON act.project_id = pro.id
+ AND act.structure_id = str.id
+ AND act.goal_id = goa.id
+LEFT JOIN tasks tas
+ ON tas.activity_id = act.id
+ AND tas.structure_id = str.id
+LEFT JOIN progresses rog
+ ON rog.task_id = tas.id
+ AND rog.structure_id = str.id
+ AND rog.activity_id = act.id
+WHERE str.active = true
+ AND str.parent = 1
+ AND pro.active = true
+ AND goa.active = true
+ AND act.active = true
+ AND tas.active = true
+ AND rog.active = true
+  --   AND str.id = 38
+GROUP BY str.id, str.structure
+ORDER BY  str.id
+;
+
+-- Consulta para obtener el numero de evidencias
+-- por estructura
+SELECT
+ str.id
+ ,str.structure
+ ,COUNT(1) as "num_metas"
+FROM structures str
+INNER JOIN owner_projects own
+ ON own.structure_id = str.id
+INNER JOIN projects  pro
+ ON pro.id = own.project_id
+LEFT JOIN goals goa  -- metas
+ ON goa.project_id = pro.id
+LEFT JOIN activities act
+ ON act.project_id = pro.id
+ AND act.structure_id = str.id
+ AND act.goal_id = goa.id
+LEFT JOIN tasks tas
+ ON tas.activity_id = act.id
+ AND tas.structure_id = str.id
+LEFT JOIN progresses rog
+ ON rog.task_id = tas.id
+ AND rog.structure_id = str.id
+ AND rog.activity_id = act.id
+LEFT JOIN files fil
+ ON fil.progress_id = rog.id
+WHERE str.active = true
+  AND str.parent = 1
+  AND pro.active = true
+  AND goa.active = true
+  AND act.active = true
+  AND tas.active = true
+  AND rog.active = true
+  AND fil.active = true
+  --   AND str.id = 38
+GROUP BY str.id, str.structure
+ORDER BY  str.id
+;
+
+
+
+-- Consulta para el modulo de informacion de estructuras
+SELECT
+ ROW_NUMBER() OVER() AS id,
+ str.id as "structure_id"
+ ,str.structure as "estructura"
+ ,COUNT (1) as "# programas"
+ ,SUM(CASE WHEN pro.status_id = 1 THEN 1 ELSE 0 END) as "con_retraso"
+ ,SUM(CASE WHEN pro.status_id = 2 THEN 1 ELSE 0 END) as "sin_avance"
+ ,SUM(CASE WHEN pro.status_id = 3 THEN 1 ELSE 0 END) as "en_porceso"
+ ,SUM(CASE WHEN pro.status_id = 4 THEN 1 ELSE 0 END) as "concluido"
+ ,(SELECT COUNT(1) FROM structures stru INNER JOIN owner_projects own ON own.structure_id = stru.id INNER JOIN projects  pro ON pro.id = own.project_id
+   LEFT JOIN goals goa ON goa.project_id = pro.id
+   WHERE stru.active = true AND stru.parent = 1 AND pro.active = true AND goa.active = true AND stru.id = str.id ) as "num_metas"
+ ,(SELECT COUNT(1) FROM structures stru INNER JOIN owner_projects own ON own.structure_id = stru.id INNER JOIN projects  pro ON pro.id = own.project_id
+    LEFT JOIN goals goa  ON goa.project_id = pro.id LEFT JOIN activities act ON act.project_id = pro.id AND act.structure_id = stru.id AND act.goal_id = goa.id
+   WHERE stru.active = true AND stru.parent = 1 AND pro.active = true AND goa.active = true AND act.active = true AND stru.id = str.id ) as "num_actividades"
+ ,(SELECT COUNT(1) FROM structures stru INNER JOIN owner_projects own ON own.structure_id = stru.id INNER JOIN projects  pro ON pro.id = own.project_id
+   LEFT JOIN goals goa ON goa.project_id = pro.id LEFT JOIN activities act ON act.project_id = pro.id AND act.structure_id = stru.id AND act.goal_id = goa.id
+   LEFT JOIN tasks tas ON tas.activity_id = act.id AND tas.structure_id = stru.id
+  WHERE stru.active = true AND stru.parent = 1 AND pro.active = true AND goa.active = true AND act.active = true AND tas.active = true AND stru.id = str.id
+  ) as "num_tareas"
+ ,(SELECT COUNT(1) FROM structures stru INNER JOIN owner_projects own ON own.structure_id = stru.id INNER JOIN projects  pro ON pro.id = own.project_id
+   LEFT JOIN goals goa ON goa.project_id = pro.id LEFT JOIN activities act ON act.project_id = pro.id AND act.structure_id = stru.id AND act.goal_id = goa.id
+   LEFT JOIN tasks tas ON tas.activity_id = act.id AND tas.structure_id = stru.id LEFT JOIN progresses rog ON rog.task_id = tas.id AND rog.structure_id = stru.id AND rog.activity_id = act.id
+   WHERE stru.active = true AND stru.parent = 1 AND pro.active = true AND goa.active = true AND act.active = true AND tas.active = true AND rog.active = true
+   AND stru.id =str.id ) as "num_seguimentos"
+ ,(SELECT COUNT(1) FROM structures stru INNER JOIN owner_projects own ON own.structure_id = stru.id INNER JOIN projects  pro ON pro.id = own.project_id
+   LEFT JOIN goals goa ON goa.project_id = pro.id LEFT JOIN activities act ON act.project_id = pro.id AND act.structure_id = stru.id AND act.goal_id = goa.id
+   LEFT JOIN tasks tas ON tas.activity_id = act.id AND tas.structure_id = stru.id LEFT JOIN progresses rog ON rog.task_id = tas.id AND rog.structure_id = stru.id AND rog.activity_id = act.id
+   LEFT JOIN files fil ON fil.progress_id = rog.id
+   WHERE stru.active = true AND stru.parent = 1 AND pro.active = true AND goa.active = true AND act.active = true AND tas.active = true AND rog.active = true
+   AND fil.active = true  AND stru.id = str.id
+ ) as "num_evidencias"
+FROM owner_projects own
+INNER JOIN projects pro
+ ON pro.id = own.project_id
+INNER JOIN structures str
+ ON str.id = own.structure_id
+INNER JOIN statuses sta
+ ON sta.id = pro.status_id
+INNER JOIN project_types typ
+ ON typ.id = pro.type_id
+WHERE
+  pro.active = true
+  AND str.active = true
+  AND str.parent = 1
+--   AND str.id = 38 -- Sistema integral familias
+GROUP BY  str.structure,str.id,num_metas
+--        ,num_actividades,num_tareas,num_seguimentos,num_evidencias
+ORDER BY str.id, str.structure
+;
+
+
+
+WITH tb_tmp_num_meta AS (
+SELECT
+ stru.id as "structure_id"
+ ,typ.id as "type_project_id"
+ ,COUNT(1) as num_metas
+FROM structures stru
+INNER JOIN owner_projects own
+ ON own.structure_id = stru.id
+INNER JOIN projects  pro
+ ON pro.id = own.project_id
+LEFT JOIN goals goa
+ ON goa.project_id = pro.id
+INNER JOIN project_types typ
+ ON typ.id = pro.type_id
+WHERE stru.active = true
+  AND stru.parent = 1
+  AND pro.active = true
+  AND goa.active = true
+  AND typ.active = true
+GROUP BY  stru.id,typ.id
+ORDER BY stru.id)
+SELECT
+ ROW_NUMBER() OVER() AS id,
+ str.id as "structure_id"
+--  ,str.structure as "estructura"
+ ,typ.id as "type_project_id"
+--  ,typ.type as "type_project"
+ ,COUNT (1) as "num_programas"
+ ,SUM(CASE WHEN pro.status_id = 1 THEN 1 ELSE 0 END) as "con_retraso"
+ ,SUM(CASE WHEN pro.status_id = 2 THEN 1 ELSE 0 END) as "sin_avance"
+ ,SUM(CASE WHEN pro.status_id = 3 THEN 1 ELSE 0 END) as "en_porceso"
+ ,SUM(CASE WHEN pro.status_id = 4 THEN 1 ELSE 0 END) as "concluido"
+ ,tb_meta.num_metas
+,(SELECT COUNT(1) FROM structures stru INNER JOIN owner_projects own ON own.structure_id = stru.id
+  INNER JOIN projects pro ON pro.id = own.project_id INNER JOIN project_types type ON type.id = pro.type_id
+  LEFT JOIN goals goa ON goa.project_id = pro.id LEFT JOIN activities act ON act.project_id = pro.id AND act.structure_id = stru.id AND act.goal_id = goa.id
+  WHERE stru.active = true AND stru.parent = 1 AND pro.active = true AND goa.active = true AND act.active = true
+   AND type.active = true AND stru.id = str.id AND type.id = typ.id
+ ) as "num_actividades"
+ ,(SELECT COUNT(1) FROM structures stru INNER JOIN owner_projects own ON own.structure_id = stru.id INNER JOIN projects  pro ON pro.id = own.project_id
+   INNER JOIN project_types type ON type.id = pro.type_id LEFT JOIN goals goa ON goa.project_id = pro.id
+   LEFT JOIN activities act ON act.project_id = pro.id AND act.structure_id = stru.id AND act.goal_id = goa.id
+   LEFT JOIN tasks tas ON tas.activity_id = act.id AND tas.structure_id = stru.id
+   WHERE stru.active = true AND stru.parent = 1 AND pro.active = true AND typ.active = true AND goa.active = true
+   AND act.active = true AND tas.active = true AND stru.id =str.id AND type.id = typ.id
+ ) as "num_tareas"
+ ,(SELECT COUNT(1) FROM structures stru INNER JOIN owner_projects own ON own.structure_id = stru.id INNER JOIN projects  pro ON pro.id = own.project_id
+   INNER JOIN project_types type ON type.id = pro.type_id LEFT JOIN goals goa ON goa.project_id = pro.id
+   LEFT JOIN activities act ON act.project_id = pro.id AND act.structure_id = stru.id AND act.goal_id = goa.id
+   LEFT JOIN tasks tas ON tas.activity_id = act.id AND tas.structure_id = stru.id
+   LEFT JOIN progresses rog ON rog.task_id = tas.id AND rog.structure_id = stru.id AND rog.activity_id = act.id
+   WHERE stru.active = true AND stru.parent = 1 AND pro.active = true AND typ.active = true AND goa.active = true AND act.active = true
+   AND tas.active = true AND rog.active = true AND stru.id =str.id AND type.id =typ.id
+ ) as "num_seguimiento"
+ ,(SELECT COUNT(1) FROM structures stru INNER JOIN owner_projects own ON own.structure_id = stru.id INNER JOIN projects  pro ON pro.id = own.project_id
+   INNER JOIN project_types type ON type.id = pro.type_id LEFT JOIN goals goa ON goa.project_id = pro.id
+   LEFT JOIN activities act ON act.project_id = pro.id AND act.structure_id = stru.id AND act.goal_id = goa.id
+   LEFT JOIN tasks tas ON tas.activity_id = act.id AND tas.structure_id = stru.id
+   LEFT JOIN progresses rog ON rog.task_id = tas.id AND rog.structure_id = stru.id AND rog.activity_id = act.id
+   LEFT JOIN files fil ON fil.progress_id = rog.id
+   WHERE stru.active = true AND stru.parent = 1 AND pro.active = true AND goa.active = true AND act.active = true AND tas.active = true
+    AND rog.active = true AND fil.active = true AND stru.id = str.id AND type.id = typ.id
+  ) as "num_evidencia"
+FROM owner_projects own
+INNER JOIN projects pro
+ ON pro.id = own.project_id
+INNER JOIN structures str
+ ON str.id = own.structure_id
+INNER JOIN statuses sta
+ ON sta.id = pro.status_id
+INNER JOIN project_types typ
+ ON typ.id = pro.type_id
+,tb_tmp_num_meta tb_meta
+WHERE
+  pro.active = true
+  AND str.active = true
+  AND str.parent = 1
+  AND tb_meta.type_project_id = pro.type_id
+  AND tb_meta.structure_id = str.id
+GROUP BY  str.structure,str.id,
+          tb_meta.type_project_id
+         ,typ.id,typ.type
+         ,tb_meta.num_metas
+         ,num_actividades
+       ,num_tareas
+       ,num_seguimiento
+       ,num_evidencia
+ORDER BY str.id, str.structure
+;
+
+--  Numero de metas por estructura
+--  y tipo de proyecto
+SELECT
+ stru.id as "structure_id"
+ ,typ.id as "type_project_id"
+ ,COUNT(1) as num_metas
+FROM structures stru
+INNER JOIN owner_projects own
+ ON own.structure_id = stru.id
+INNER JOIN projects  pro
+ ON pro.id = own.project_id
+LEFT JOIN goals goa
+ ON goa.project_id = pro.id
+INNER JOIN project_types typ
+ ON typ.id = pro.type_id
+WHERE stru.active = true
+  AND stru.parent = 1
+  AND pro.active = true
+  AND goa.active = true
+  AND typ.active = true
+  --   AND stru.id = 38
+GROUP BY  stru.id,typ.id
+ORDER BY stru.id
+;
+
+--  Numero de actvidades por estructura
+--  y tipo de proyecto
+SELECT
+ stru.id as "structure_id"
+ ,stru.structure
+ ,typ.id as "type_project_id"
+ ,typ.type
+ ,COUNT(1) as num_actividades
+FROM structures stru
+INNER JOIN owner_projects own
+ ON own.structure_id = stru.id
+INNER JOIN projects pro
+ ON pro.id = own.project_id
+INNER JOIN project_types typ
+ ON typ.id = pro.type_id
+LEFT JOIN goals goa
+ ON goa.project_id = pro.id
+LEFT JOIN activities act
+ ON act.project_id = pro.id
+ AND act.structure_id = stru.id
+ AND act.goal_id = goa.id
+WHERE stru.active = true
+ AND stru.parent = 1
+ AND pro.active = true
+ AND goa.active = true
+ AND act.active = true
+ AND typ.active = true
+ AND stru.id = 38
+GROUP BY  stru.id,typ.id
+ORDER BY stru.id
+;
+
+
+--  Numero de tareas por estructura
+--  y tipo de proyecto
+SELECT
+ stru.id as "structure_id"
+ ,stru.structure
+ ,typ.id as "type_project_id"
+ ,typ.type
+ ,COUNT(1) as "num_tareas"
+FROM structures stru
+INNER JOIN owner_projects own
+ ON own.structure_id = stru.id
+INNER JOIN projects  pro
+ ON pro.id = own.project_id
+INNER JOIN project_types typ
+ ON typ.id = pro.type_id
+LEFT JOIN goals goa
+ ON goa.project_id = pro.id
+LEFT JOIN activities act
+ ON act.project_id = pro.id AND act.structure_id = stru.id
+ AND act.goal_id = goa.id
+LEFT JOIN tasks tas
+ ON tas.activity_id = act.id
+ AND tas.structure_id = stru.id
+WHERE stru.active = true
+ AND stru.parent = 1
+ AND pro.active = true
+  AND typ.active = true
+ AND goa.active = true
+ AND act.active = true
+ AND tas.active = true
+GROUP BY  stru.id,typ.id
+ORDER BY stru.id
+;
+
+
+--  Numero de seguimiento por estructura
+--  y tipo de proyecto
+SELECT
+ stru.id as "structure_id"
+ ,stru.structure
+ ,typ.id as "type_project_id"
+ ,typ.type
+ ,COUNT(1) as "num_tareas"
+FROM structures stru
+INNER JOIN owner_projects own
+ ON own.structure_id = stru.id
+INNER JOIN projects  pro
+ ON pro.id = own.project_id
+INNER JOIN project_types typ
+ ON typ.id = pro.type_id
+LEFT JOIN goals goa
+ ON goa.project_id = pro.id
+LEFT JOIN activities act
+ ON act.project_id = pro.id AND act.structure_id = stru.id
+ AND act.goal_id = goa.id
+LEFT JOIN tasks tas
+ ON tas.activity_id = act.id
+AND tas.structure_id = stru.id
+LEFT JOIN progresses rog
+ ON rog.task_id = tas.id
+ AND rog.structure_id = stru.id
+ AND rog.activity_id = act.id
+WHERE stru.active = true
+  AND stru.parent = 1
+  AND pro.active = true
+  AND typ.active = true
+  AND goa.active = true
+  AND act.active = true
+  AND tas.active = true
+   AND rog.active = true
+  --  AND stru.id =str.id
+  --  AND type.id =typ.id
+GROUP BY  stru.id,typ.id
+ORDER BY stru.id
+;
+
+
+SELECT
+  stru.id as "structure_id"
+  ,stru.structure
+  ,type.id as "type_project_id"
+  ,type.type
+  ,COUNT(1) as "num_evidencia"
+FROM structures stru
+INNER JOIN owner_projects own
+ ON own.structure_id = stru.id
+INNER JOIN projects  pro
+ ON pro.id = own.project_id
+INNER JOIN project_types type
+ ON type.id = pro.type_id
+LEFT JOIN goals goa
+ ON goa.project_id = pro.id
+LEFT JOIN activities act
+ ON act.project_id = pro.id
+ AND act.structure_id = stru.id
+ AND act.goal_id = goa.id
+LEFT JOIN tasks tas
+ ON tas.activity_id = act.id
+ AND tas.structure_id = stru.id
+LEFT JOIN progresses rog
+ ON rog.task_id = tas.id
+ AND rog.structure_id = stru.id
+ AND rog.activity_id = act.id
+LEFT JOIN files fil
+ ON fil.progress_id = rog.id
+WHERE stru.active = true
+ AND stru.parent = 1
+ AND pro.active = true
+ AND goa.active = true
+ AND act.active = true
+ AND tas.active = true
+ AND rog.active = true
+ AND fil.active = true
+--  AND stru.id = str.id
+--  AND type.id = typ.id
+GROUP BY  stru.id,type.id
+ORDER BY stru.id
+;
+
+
+
+-- CONSULTA PARA EL MODULO DE INFORMACION
+WITH tb_tmp_num_meta AS (
+  SELECT
+    stru.id as "structure_id"
+    ,typ.id as "project_type_id"
+    ,COUNT(1) as num_metas
+  FROM structures stru
+  INNER JOIN owner_projects own
+   ON own.structure_id = stru.id
+  INNER JOIN projects  pro
+   ON pro.id = own.project_id
+  LEFT JOIN goals goa
+   ON goa.project_id = pro.id
+  INNER JOIN project_types typ
+   ON typ.id = pro.type_id
+  WHERE stru.active = true
+    AND stru.parent = 1
+    AND pro.active = true
+    AND pro.jefatura = true
+    AND goa.active = true
+    AND typ.active = true
+  GROUP BY  stru.id,typ.id
+  ORDER BY stru.id
+)
+SELECT
+ ROW_NUMBER() OVER() AS id,
+ str.id as "structure_id"
+ ,str.structure
+ ,typ.id as "project_type_id"
+ ,typ.type
+ ,COUNT (1) as "num_programas"
+ ,SUM(CASE WHEN pro.status_id = 1 THEN 1 ELSE 0 END) as "con_retraso"
+ ,SUM(CASE WHEN pro.status_id = 2 THEN 1 ELSE 0 END) as "sin_avance"
+ ,SUM(CASE WHEN pro.status_id = 3 THEN 1 ELSE 0 END) as "en_porceso"
+ ,SUM(CASE WHEN pro.status_id = 4 THEN 1 ELSE 0 END) as "concluido"
+ ,tb_meta.num_metas
+ ,(SELECT COUNT(1) FROM structures stru INNER JOIN owner_projects own ON own.structure_id = stru.id
+   INNER JOIN projects pro ON pro.id = own.project_id INNER JOIN project_types type ON type.id = pro.type_id
+   LEFT JOIN goals goa ON goa.project_id = pro.id LEFT JOIN activities act ON act.project_id = pro.id AND act.structure_id = stru.id AND act.goal_id = goa.id
+   WHERE stru.active = true AND stru.parent = 1 AND pro.active = true AND goa.active = true AND act.active = true
+    AND type.active = true AND stru.id = str.id AND type.id = typ.id
+) as "num_actividades"
+,(SELECT COUNT(1) FROM structures stru INNER JOIN owner_projects own ON own.structure_id = stru.id INNER JOIN projects  pro ON pro.id = own.project_id
+  INNER JOIN project_types type ON type.id = pro.type_id LEFT JOIN goals goa ON goa.project_id = pro.id
+  LEFT JOIN activities act ON act.project_id = pro.id AND act.structure_id = stru.id AND act.goal_id = goa.id
+  LEFT JOIN tasks tas ON tas.activity_id = act.id AND tas.structure_id = stru.id
+  WHERE stru.active = true AND stru.parent = 1 AND pro.active = true AND typ.active = true AND goa.active = true
+   AND act.active = true AND tas.active = true AND stru.id =str.id AND type.id = typ.id
+) as "num_tareas"
+,(SELECT COUNT(1) FROM structures stru INNER JOIN owner_projects own ON own.structure_id = stru.id INNER JOIN projects  pro ON pro.id = own.project_id
+  INNER JOIN project_types type ON type.id = pro.type_id LEFT JOIN goals goa ON goa.project_id = pro.id
+  LEFT JOIN activities act ON act.project_id = pro.id AND act.structure_id = stru.id AND act.goal_id = goa.id
+  LEFT JOIN tasks tas ON tas.activity_id = act.id AND tas.structure_id = stru.id
+  LEFT JOIN progresses rog ON rog.task_id = tas.id AND rog.structure_id = stru.id AND rog.activity_id = act.id
+  WHERE stru.active = true AND stru.parent = 1 AND pro.active = true AND typ.active = true AND goa.active = true AND act.active = true
+   AND tas.active = true AND rog.active = true AND stru.id =str.id AND type.id =typ.id
+) as "num_seguimiento"
+,(SELECT COUNT(1) FROM structures stru INNER JOIN owner_projects own ON own.structure_id = stru.id INNER JOIN projects  pro ON pro.id = own.project_id
+  INNER JOIN project_types type ON type.id = pro.type_id LEFT JOIN goals goa ON goa.project_id = pro.id
+  LEFT JOIN activities act ON act.project_id = pro.id AND act.structure_id = stru.id AND act.goal_id = goa.id
+  LEFT JOIN tasks tas ON tas.activity_id = act.id AND tas.structure_id = stru.id
+  LEFT JOIN progresses rog ON rog.task_id = tas.id AND rog.structure_id = stru.id AND rog.activity_id = act.id
+  LEFT JOIN files fil ON fil.progress_id = rog.id
+  WHERE stru.active = true AND stru.parent = 1 AND pro.active = true AND goa.active = true AND act.active = true AND tas.active = true
+   AND rog.active = true AND fil.active = true AND stru.id = str.id AND type.id = typ.id
+) as "num_evidencia"
+,now() :: date AS fecha_alta
+FROM owner_projects own
+INNER JOIN projects pro
+ ON pro.id = own.project_id
+INNER JOIN structures str
+ ON str.id = own.structure_id
+INNER JOIN statuses sta
+ ON sta.id = pro.status_id
+INNER JOIN project_types typ
+ ON typ.id = pro.type_id
+,tb_tmp_num_meta tb_meta
+WHERE
+ pro.active = true
+ AND str.active = true
+ AND str.parent = 1
+ AND tb_meta.project_type_id = pro.type_id
+ AND tb_meta.structure_id = str.id
+GROUP BY  str.id -- structure_id
+       ,tb_meta.project_type_id
+       ,typ.id -- project_type_id
+       ,tb_meta.num_metas
+       ,num_actividades ,num_tareas
+       ,num_seguimiento ,num_evidencia
+ORDER BY str.id
+;
+
+-- PROCEDIMIENTO QUE CREA LA TABLA PARA EL MODULO DE INFORMACION
+-- DE LAS ESTRUCTURAS, CON EL RESUMEN DE LOS PROYECTOS,
+-- ESTATUS DE LOS PROYECTOS, # DE METAS, ACTIVIDADES, TAREAS
+-- SEGUIMIENTOS Y EVIDENCIAS
+CREATE OR REPLACE FUNCTION  sumatoria_estructura_proyecto( fecha_alta DATE )
+RETURNS VOID AS $sumatoria$
+DECLARE
+  row_information_schema information_schema.tables%ROWTYPE;
+BEGIN
+--   Verificar si existe la tabla de modulo_informacion
+  RAISE INFO 'PROCEDIMIENTO PARA GENERAR LA TABLA DE SUMATORIA Y GRAFICAS';
+  SELECT * INTO row_information_schema FROM information_schema.tables
+  WHERE table_name = 'total_adavanced_projects' AND table_schema = 'public';
+  IF row_information_schema IS NULL THEN
+    RAISE INFO  '-- Se crea una SE VA A CREAR LA TABLA PARA PODER HACER LOS INSERTS';
+    CREATE  TABLE total_adavanced_projects(
+        id serial,
+        structure_id integer not null,
+        project_type_id integer not null,
+        projects integer not null,
+
+        goals	integer not null,
+        activities	integer not null,
+        tasks	integer not null,
+        progresses integer not null,
+        evidences integer not null,
+        current_date date,
+        primary key (id),
+        foreign key (structure_id) references structures (id),
+        foreign key (project_type_id) references project_types (id)
+    );
+  END IF;
+
+END;
+$sumatoria$
+LANGUAGE plpgsql;
+
+-- Ejemplo de cursor
+CREATE OR REPLACE FUNCTION cursor_example() RETURNS VOID AS $cursor$
+DECLARE
+  rec_talento RECORD;
+  cur_row_talento CURSOR FOR SELECT * FROM talento ORDER BY id LIMIT 10;
+BEGIN
+  --   Se abre el cursor
+  OPEN cur_row_talento;
+  LOOP
+    --  Se le asigna el valor del registro a la variable record
+    FETCH cur_row_talento INTO rec_talento;
+    -- Se sale cuando ya no encuentra mas registros
+    EXIT WHEN NOT FOUND;
+    RAISE INFO 'Valor del registro: %',CONCAT(rec_talento.id,'-',rec_talento.curp);
+  END LOOP;
+END;
+$cursor$
+  LANGUAGE plpgsql;
+
+SELECT * FROM projects WHERE active=true ORDER BY created_at;
+
+-- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
+--                              PROCESO PARA EL REPORTE DE AVANCE POR ENTE DE GOBIERNO                              --
+-- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
+
+-- =====================================================================================================================
+-- SE CREA LA TALBA QUE SERVIRA PARA EL REPORTE
+-- =====================================================================================================================
+DROP TABLE IF EXISTS advance_entity_government;
+CREATE TABLE advance_entity_government(
+  id bigserial
+  ,structure_id integer
+  ,poject_type_id integer
+  ,num_program integer
+  ,late integer
+  ,no_progress integer
+  ,in_process integer
+  ,concluded integer
+  ,num_goal integer
+  ,num_activity integer
+  ,num_task integer
+  ,num_progress integer
+  ,num_files integer
+)
+;
+
+SELECT * FROM structures WHERE id = 3;
+SELECT * FROM projects ;
+SELECT * FROM owner_projects WHERE structure_id = 3;
+
+-- Consulta para obtener los proyectos de la estrucutra
+-- dependencia de ADIP ===> 3
+SELECT
+ pro.id
+ ,pro.project
+ ,pro.status_id
+ ,pro.created_at
+ ,pro.type_id
+FROM structures str
+INNER JOIN owner_projects own
+ ON str.id = own.structure_id
+INNER JOIN projects pro
+ ON own.project_id = pro.id
+WHERE str.id = 3
+ORDER BY pro.created_at ASC
+;
+
+SELECT
+ b.struc_id
+ ,b.project_type
+ ,SUM(b.num_progrmas)
+--  ,b.date_alta
+FROM (
+       SELECT
+         str.id struc_id
+         ,typ.id as project_type
+         ,count(1)  num_progrmas
+         ,pro.created_at :: date date_alta
+       FROM structures str
+       INNER JOIN owner_projects own
+        ON str.id = own.structure_id
+       INNER JOIN projects pro
+        ON pro.id = own.project_id
+       INNER JOIN project_types typ
+        ON pro.type_id = typ.id
+        WHERE
+          -- str.id = 3
+--       AND
+           str.active = true
+         AND pro.active = true
+         AND pro.jefatura = true
+       GROUP BY str.id, typ.id, pro.created_at ::date
+       ORDER BY str.id, pro.created_at::date, typ.id
+     ) as b
+GROUP BY b.struc_id ,b.project_type
+--        , b.date_alta
+ORDER BY b.struc_id
+;
+
+
+-- CONSULTA PARA OBTENER LOS DIFERENTES TIPOS DE PROYECTOS
+SELECT * FROM project_types;
+
+-- CONSULTA PARA OBTENER LOS DIFERENTES TIPOS DE ESTATUS
+SELECT * FROM statuses ORDER BY id;
+
+-- =====================================================================================================================
+-- SE CREA LA TABLA QUE SERVIRA PARA EL REPORTE
+-- =====================================================================================================================
