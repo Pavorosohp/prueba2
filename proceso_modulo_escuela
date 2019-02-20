@@ -864,15 +864,40 @@ SELECT * FROM project_types;
 -- CONSULTA PARA OBTENER LOS DIFERENTES TIPOS DE ESTATUS
 SELECT * FROM statuses ORDER BY id;
 
+
+-- CONSULTA PARA OBTENER EL NUMERO DE METAS POR CADA ESTRUCTURA
+-- DEPENDIENDO POR FECHA DE ALTA
+SELECT
+  str.id struc_id
+  ,typ.id as project_type
+  ,count(1) num_programs
+  ,pro.created_at :: date date_alta
+FROM structures str
+INNER JOIN owner_projects own
+ ON str.id = own.structure_id
+INNER JOIN projects pro
+ ON pro.id = own.project_id
+INNER JOIN project_types typ
+ ON pro.type_id = typ.id
+WHERE
+    str.id = 3
+  AND
+    str.active = true
+  AND pro.active = true
+  AND pro.jefatura = true
+GROUP BY str.id, typ.id, pro.created_at ::date
+ORDER BY str.id, pro.created_at::date, typ.id
+
 -- CONSULTA PARA OBTENER EL NUMERO DE PROGRAMAS POR CADA ESTRUCTURA
 -- DEPENDIENDO POR FECHA DE ALTA
-WITH tb_tmp_num_programs AS
+WITH tb_tmp_num_metas AS
 (
  SELECT
   str.id                 struc_id
-  , typ.id as              project_type
-  , count(1)               num_programs
-  , pro.created_at :: date date_alta
+  ,typ.id as              project_type
+  ,count(1)               num_goal
+--   ,pro.created_at :: date date_alta
+  ,goa.created_at :: date date_alta_meta
  FROM structures str
  INNER JOIN owner_projects own
   ON str.id = own.structure_id
@@ -880,16 +905,41 @@ WITH tb_tmp_num_programs AS
   ON pro.id = own.project_id
  INNER JOIN project_types typ
   ON pro.type_id = typ.id
+ LEFT JOIN goals goa
+  ON pro.id = goa.project_id
  WHERE
   str.id = 3
  AND
   str.active = true
  AND pro.active = true
  AND pro.jefatura = true
- GROUP BY str.id, typ.id, pro.created_at ::date
- ORDER BY str.id, pro.created_at::date, typ.id
+ GROUP BY str.id, typ.id,
+--           pro.created_at ::date
+       goa.created_at ::date
+ ORDER BY str.id,
+--           pro.created_at::date
+       goa.created_at::date
+          ,typ.id
 )
 SELECT
- *
-FROM tb_tmp_num_programs
+ str.id
+ ,str.structure
+ ,typ.id
+ ,typ.type
+ ,tmp.num_goal
+ ,tmp.date_alta_meta
+ ,COUNT(1) num_programs
+FROM structures str
+INNER JOIN owner_projects own
+ ON str.id = own.structure_id
+INNER JOIN projects pro
+ ON pro.id = own.project_id
+INNER JOIN project_types typ
+ ON pro.type_id = typ.id,
+tb_tmp_num_metas tmp
+WHERE tmp.struc_id = str.id
+AND tmp.project_type = typ.id
+-- AND pro.created_at :: date = tmp.date_alta_meta
+GROUP BY  str.id, str.structure, typ.id, typ.type,tmp.num_goal,tmp.date_alta_meta
+ORDER BY str.id,tmp.date_alta_meta ::date,typ.id
 ;
