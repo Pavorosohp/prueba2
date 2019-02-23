@@ -23,7 +23,8 @@ CREATE TABLE escuela_basica(
   base text
 );
 
-COPY escuela_basica FROM '/home/gesif/Desktop/modulo_escuelas/archivos_csv/escuela_basica.csv' CSV HEADER ;
+COPY escuela_basica FROM '/home/gesif/Desktop/JefaturaGobierno/territorial/modulo_escuelas/archivos_csv/escuela_basica.csv' CSV HEADER ;
+-- COPY escuela_basica FROM '/home/gesif/Desktop/JefaturaGobierno/territorial/modulo_escuelas/archivos_csv/escuela_basica_nuevo.csv' CSV HEADER ;
 
 -- CONSULTA TABLA ESCUELA
 SELECT * FROM escuela_basica;
@@ -146,13 +147,14 @@ CREATE TABLE basica_cct_x_inmueble (
  recuento text,
  num_alumnos text
 );
-COPY basica_cct_x_inmueble FROM '/home/gesif/Desktop/modulo_escuelas/archivos_csv/basica_cct_inmueble.csv' CSV HEADER ;
+COPY basica_cct_x_inmueble FROM '/home/gesif/Desktop/JefaturaGobierno/territorial/modulo_escuelas/archivos_csv/basica_cct_inmueble.csv' CSV HEADER ;
+-- COPY basica_cct_x_inmueble FROM '/home/gesif/Desktop/JefaturaGobierno/territorial/modulo_escuelas/archivos_csv/basica_cct_inmueble_nuevo.csv' CSV HEADER ;
 
 -- CONSULTA PARA LAS ESCUELAS
 SELECT * FROM basica_cct_x_inmueble;
 
 -- =====================================================================================================================
--- ACTUALIZACION DE LAS COLONIAS EN BLANCO DE LA ALCALDIA
+-- ACTUALIZACION SE QUITAN LOS ESPACIOS EN BLANCO
 -- =====================================================================================================================
 UPDATE basica_cct_x_inmueble SET domicilio = TRIM(domicilio);
 -- =====================================================================================================================
@@ -160,7 +162,7 @@ UPDATE basica_cct_x_inmueble SET domicilio = TRIM(domicilio);
 -- =====================================================================================================================
 UPDATE basica_cct_x_inmueble SET nombre_cct = replace(nombre_cct,'.','')
 WHERE nombre_cct IN ('PROFR. VICENTE V YBARRA','DR. EDUARDO LICEAGA','PROFR. MAXIMILIANO MOLINA FUENTE','PROFR. MANUEL S HIDALGO');
-SELECT * FROM basica_cct_x_inmueble WHERE nombre_cct = 'PROFR MAXIMILIADO MOLINA FUENTE';
+SELECT * FROM basica_cct_x_inmueble ;-- WHERE nombre_cct = 'PROFR MAXIMILIADO MOLINA FUENTE';
 
 -- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
 --                                      PROCESO PARA LA TABLA DE PROMOTORES                                         --
@@ -234,7 +236,7 @@ SET nombre = trim(nombre),segundo_nombre = trim(segundo_nombre)
 SELECT  * FROM promotores_mail_celular;
 
 -- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
---                                      PROCESO PARA LA TABLA DE PROMOTORES                                         --
+--                                PROCESO PARA LA TABLA DE PROMOTORES CON LA CLAVE CCT                              --
 -- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
 
 -- =====================================================================================================================
@@ -302,26 +304,207 @@ SET alcaldia = TRIM(alcaldia)
 SELECT * FROM clave_promotor_cct_direccion;
 
 -- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
+--                                      CARGA DE PADRONES DE ESCUELAS DE LA SEP                                     --
+-- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
+-- =====================================================================================================================
+-- CARGA DEL PADRON DE PREESCOLAR
+-- =====================================================================================================================
+DROP TABLE IF EXISTS padron_sep_preescolar;
+CREATE TABLE padron_sep_preescolar (
+ cct text
+ ,nombre text
+ ,turno text
+ ,domicilio text
+ ,colonia text
+ ,alcaldia text
+ ,telefono text
+ ,codigo_postal text
+);
+COPY padron_sep_preescolar FROM '/home/gesif/Desktop/modulo_escuelas/archivos_csv/padron_sep_preescolar.csv' CSV HEADER;
+UPDATE padron_sep_preescolar
+SET cct = trim (cct)
+    ,nombre= trim(nombre)
+    ,turno = trim(turno)
+    ,domicilio = trim(domicilio)
+    ,colonia = trim(colonia)
+    ,alcaldia = trim(alcaldia)
+;
+SELECT * FROM padron_sep_preescolar;
+SELECT length(codigo_postal),COUNT(1) FROM padron_sep_preescolar GROUP BY  length(codigo_postal);
+UPDATE padron_sep_preescolar
+SET codigo_postal = lpad(codigo_postal,5,'0')
+WHERE length(codigo_postal) = 4
+;
+
+-- =====================================================================================================================
+-- CARGA DEL PADRON DE PRIMARIA
+-- =====================================================================================================================
+DROP TABLE IF EXISTS padron_sep_primaria;
+CREATE TABLE padron_sep_primaria (
+ cct text
+ ,nombre text
+ ,turno text
+ ,domicilio text
+ ,colonia text
+ ,alcaldia text
+ ,telefono text
+ ,codigo_postal text
+ ,sector text
+ ,region text
+ ,zona_escolar text
+);
+COPY padron_sep_primaria FROM '/home/gesif/Desktop/modulo_escuelas/archivos_csv/padron_sep_primaria.csv' CSV HEADER;
+SELECT * FROM padron_sep_primaria;
+UPDATE padron_sep_primaria
+SET cct=trim(cct)
+    ,nombre = trim(nombre)
+    ,turno = trim(turno)
+    ,domicilio = trim(domicilio)
+    ,colonia = trim (colonia)
+    ,alcaldia = trim(alcaldia)
+    ,codigo_postal = trim(codigo_postal)
+;
+SELECT length(codigo_postal),COUNT(1) FROM padron_sep_primaria GROUP BY  length(codigo_postal);
+UPDATE padron_sep_primaria
+SET codigo_postal = lpad(codigo_postal,5,'0')
+WHERE length(codigo_postal) = 4
+;
+
+UPDATE escuela_basica
+SET colonia = pri.colonia
+    ,tel = pri.telefono
+    ,cp = pri.codigo_postal
+    ,alcaldia = pri.alcaldia
+FROM padron_sep_primaria pri
+WHERE pri.domicilio ='AV JAVIER ROJO GOMEZ NO 103'
+ AND escuela_basica.domicilio = 'JAVIER ROJO GOMEZ NO 103'
+;
+
+-- =====================================================================================================================
+-- CARGA DEL PADRON DE SECUNDARIA
+-- =====================================================================================================================
+DROP TABLE IF EXISTS padron_sep_secundaria;
+CREATE TABLE padron_sep_secundaria(
+ cct text
+ ,nombre text
+ ,turno text
+ ,domicilio text
+ ,colonia text
+ ,alcaldia text
+ ,telefono text
+ ,codigo_postal text
+ ,sector text
+ ,region text
+ ,zona_escolar text
+);
+COPY padron_sep_secundaria FROM '/home/gesif/Desktop/modulo_escuelas/archivos_csv/padron_sep_secundaria.csv' CSV HEADER;
+SELECT length(codigo_postal),COUNT(1) FROM padron_sep_secundaria GROUP BY  length(codigo_postal);
+UPDATE padron_sep_secundaria
+SET codigo_postal = lpad(codigo_postal,5,'0')
+WHERE length(codigo_postal) = 4
+;
+
+
+-- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
+--                          PROCESO PARA LA TABLA DE PROMOTORES QUE SON ENLACE (COORDINADORES)                      --
+-- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
+DROP TABLE IF EXISTS promotor_enlace_alcaldia;
+CREATE TABLE promotor_enlace_alcaldia (
+  num text
+  ,apellido_paterno text
+  ,apellido_materno text
+  ,primer_nombre text
+  ,segundo_nombre text
+  ,alcaldia text
+  ,correo_electronico text
+  ,telefono_privado text
+  ,telefono_app text
+  ,imei text
+  ,imei_impreso text
+  ,firma_recibido text
+);
+
+COPY promotor_enlace_alcaldia FROM '/home/gesif/Desktop/modulo_escuelas/archivos_csv/promotores_enlaces_alcaldia.csv' CSV HEADER;
+
+-- =====================================================================================================================
+-- SE ELIMINAN LOS ESPACIOS EN BLANCO
+-- =====================================================================================================================
+UPDATE promotor_enlace_alcaldia
+SET alcaldia = trim(alcaldia)
+;
+-- =====================================================================================================================
+-- SE ACUALIZA LA ALCALDIA DE CUAJIMALPA PARA HACER MATCH CON LA TABLA DE MUNICIPIO
+-- =====================================================================================================================
+UPDATE promotor_enlace_alcaldia
+SET alcaldia = 'CUAJIMALPA DE MORELOS'
+WHERE  alcaldia = 'CUAJIMALPA'
+;
+
+SELECT
+ use.id
+ ,use.name
+ ,use.paterno
+ ,use.materno
+ ,use.email
+ ,enl.*
+FROM users use
+INNER JOIN promotor_enlace_alcaldia enl
+  ON use.email = enl.correo_electronico
+;
+
+-- =====================================================================================================================
+-- SE ACUALIZA LOS NOMBRES, APELLIDO PATERNO, APELLIDO MATERNO
+-- =====================================================================================================================
+UPDATE users
+SET name = concat(primer_nombre,' ',segundo_nombre)
+ ,paterno = apellido_paterno
+ ,materno = apellido_materno
+FROM promotor_enlace_alcaldia
+WHERE correo_electronico = email
+;
+
+CREATE TABLE tmp_users AS (
+  SELECT
+    use.id
+    ,use.name
+    ,use.paterno
+    ,use.materno
+    ,use.email
+  FROM users use
+  INNER JOIN promotor_enlace_alcaldia enl
+   ON use.email = enl.correo_electronico
+)
+;
+
+SELECT alcaldia FROM promotor_enlace_alcaldia enl INNER JOIN municipalities mun ON enl.alcaldia = mun.municipality  GROUP BY enl.alcaldia ORDER BY enl.alcaldia;
+SELECT * FROM promotor_enlace_alcaldia WHERE correo_electronico ='planingrogelio@hotmail.com';
+SELECT * FROM users WHERE lower(name) LIKE '%paul%';
+SELECT * FROM municipalities;
+
+-- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
 --                                      PROCESO PARA GENERAR LA TABLA DE SCHOOLS                                    --
 -- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
 CREATE INDEX escuela_basica_domicilio ON escuela_basica (domicilio);
 CREATE INDEX escuela_basica_municipio ON escuela_basica (alcaldia);
 CREATE INDEX basica_cct_x_inmueble_domicilio ON basica_cct_x_inmueble (domicilio);
 
+SELECT COUNT(*) FROM schools;
 SELECT * FROM escuela_basica;
 SELECT * FROM basica_cct_x_inmueble;
 SELECT * FROM municipalities;
 SELECT * FROM clave_promotor_cct_direccion;
 
 SELECT COUNT(1), alcaldia FROM escuela_basica GROUP BY  alcaldia;
-
+SELECT * FROM escuela_basica ;
+SELECT * FROM padron_sep_primaria WHERE domicilio LIKE '%JAVIER ROJO GOMEZ NO 103%';
 -- registros 2684
--- DELETE FROM schools;
--- ALTER SEQUENCE schools_id_seq RESTART  1;
+DELETE FROM schools;
+ALTER SEQUENCE schools_id_seq RESTART  1;
 -- =====================================================================================================================
 -- SE INSERTA EN LA TABLA DE SCHOOLS
 -- =====================================================================================================================
-
+-- DELETE FROM schools WHERE id BETWEEN  3884 AND 3889;
+-- ALTER SEQUENCE  schools_id_seq RESTART 3884;
 INSERT INTO schools(name,address,colony,municipality_id,phone,postal_code,lt,lng,point)
   (
     SELECT
@@ -331,19 +514,19 @@ INSERT INTO schools(name,address,colony,municipality_id,phone,postal_code,lt,lng
      ,COALESCE(mun.id,0)           as municipality_id
      ,COALESCE(esc.tel::bigint, 0) as phone
      ,esc.cp                       as postal_code
-     ,esc.x::double precision      as lt
-     ,esc.y::double precision      as lng
+     ,esc.y::double precision      as lt
+     ,esc.x::double precision      as lng
      ,st_setsrid(st_makepoint(esc.x::double precision, esc.y::double precision), 4326)
     FROM escuela_basica esc
-    LEFT JOIN basica_cct_x_inmueble bas
+    INNER JOIN basica_cct_x_inmueble bas
      ON esc.domicilio = bas.domicilio
     LEFT JOIN municipalities mun
      ON esc.alcaldia = mun.municipality
-    -- WHERE esc.domicilio LIKE 'AV. DEL PENON NO. 49' -- 'MORELOS'
     -- WHERE bas.cct IN ('09DBA0178Y','09DBS0034A')
   )
 ;
-SELECT * FROM schools;
+
+SELECT * FROM schools ORDER BY id DESC;
 
 -- =====================================================================================================================
 -- CONSULTA PARA OBTENER EL CCT Y EL DOMICILIO DE LAS SECUNDARIAS TECNICAS
@@ -674,7 +857,7 @@ WHERE bas.nombre_cct = 'REPUBLICA POPULAR SOCIALISTA DE ALBANIA'
 SELECT * FROM basica_cct_x_inmueble;
 
 SELECT COUNT(1) FROM basica_cct_x_inmueble
---WHERE domicilio IS NULL
+WHERE domicilio IS NULL
 ;
 
 -- =====================================================================================================================
@@ -692,6 +875,8 @@ WHERE basica_cct_x_inmueble.domicilio IS NULL
 AND b.nombre_cct = basica_cct_x_inmueble.nombre_cct
 ;
 
+
+
 -- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
 --                                 PROCESO PARA GENERAR LA TABLA DE SCHOOL_SHIFT                                    --
 -- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
@@ -704,20 +889,31 @@ INSERT INTO school_shift (school_id,key,number_student_shift,shift_id,level_id)
   (
     SELECT
      sch.id
-     ,bas.cct
+     ,
+     bas.cct
+--      ,bas.nombre_cct
      ,bas.num_alumnos ::int
      ,shi.id as shift_id
+--      ,shi.shift
      ,lev.id as level_id
+--      ,lev.level
     FROM basica_cct_x_inmueble bas
-    LEFT JOIN schools sch
+    INNER JOIN schools sch
      ON sch.address = bas.domicilio
     INNER JOIN levels lev
      ON lev.level = bas.nivel
-    LEFT JOIN shifts shi
-     ON shi.shift = bas.turno
+    INNER JOIN shifts shi ON shi.shift = bas.turno
+--     WHERE bas.nombre_cct = 'DIEGO RIVERA BARRIENTOS'
     ORDER BY shi.id
   )
 ;
+
+-- UPDATE basica_cct_x_inmueble SET nivel = 'PREESCOLAR' WHERE nivel IS NULL;
+SELECT * FROM schools ORDER BY  id DESC LIMIT 10;
+SELECT * FROM school_shift ORDER BY id DESC LIMIT 10;
+DELETE FROM schools WHERE id IN(384,385,386);
+SELECT * FROM schools WHERE id = 3887;
+SELECT * FROM basica_cct_x_inmueble;
 
 -- SELECT * FROM basica_cct_x_inmueble WHERE nombre_cct LIKE 'ESCUELA SECUNDARIA TECNICA%' ORDER BY  nombre_cct;
 -- SELECT length(CELULAR),count(1) FROM promotores_mail_celular GROUP BY  length(celular);
@@ -756,10 +952,6 @@ SELECT * FROM update_users_name_pat_mat WHERE email = 'flupe2722@gmail.com';
 SELECT * FROM users WHERE email='flupe2722@gmail.com';
 
 -- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
-
-
-
-
 
 -- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
 --                               PROCESO PARA INSERTAR EN LA TABLA DE PROMOTORES                                    --
@@ -850,6 +1042,8 @@ INSERT INTO promoters(user_id,fidegar_key,created_by)
      ON use.email = pro.correo_electronico
   )
 ;
+
+-- SELECT * FROM promoters WHERE fidegar_key = 'PromotorNorteA7';
 -- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
 --                               PROCESO PARA INSERTAR EN LA TABLA DE SCHOOL_USER                                   --
 -- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
@@ -870,10 +1064,18 @@ INSERT INTO school_user (promoter_id, school_key, school_shift_id)
    ON sch.key = cla.clavecct
   INNER JOIN promoters mot
    ON mot.fidegar_key = cla.promotor1
+--   WHERE sch.id BETWEEN 3884 AND 3887
+--   WHERE sch.key = '09DPR2703S'
   ORDER BY sch.key
 )
 ;
 
+-- SELECT  MAX(id) FROM schools;
+-- SELECT * FROM school_user ORDER BY ID DESC ;
+-- DELETE FROM school_user WHERE school_shift_id = 3884;
+-- ALTER SEQUENCE school_user_id_seq RESTART 7696;
+   SELECT * FROM promoters
+   ;
 -- ====================================================================================================================
 -- Insert para la tabla de school_user para el promotor 2
 -- ====================================================================================================================
@@ -890,8 +1092,123 @@ INSERT INTO school_user (promoter_id, school_key, school_shift_id)
    ON sch.key = cla.clavecct
   INNER JOIN promoters mot
    ON mot.fidegar_key = cla.promotor2
+--          WHERE sch.key = '09DPR2703S'
   ORDER BY sch.key
 )
 ;
 
 SELECT * FROM shifts;
+INSERT INTO shifts (shift,created_at,updated_at) VALUES ('DISCONTINUO',now(),now()),('MIXTO',now(),now());
+UPDATE shifts SET created_at = now() , updated_at = now() WHERE id IN (6,7);
+
+SELECT
+  mot.id as promoter_id_1
+  ,sch.key
+  ,sch.id as shift_school_id
+  ,pro.correo_electronico
+FROM promotores_mail_celular pro
+INNER JOIN clave_promotor_cct_direccion cla
+ ON pro.clave = cla.promotor1
+INNER JOIN school_shift sch
+ ON sch.key = cla.clavecct
+INNER JOIN promoters mot
+ ON mot.fidegar_key = cla.promotor1
+ORDER BY sch.key
+;
+
+SELECT
+ *
+FROM promoters pro
+WHERE fidegar_key IN('PromotorNorteA7','PromotorSurA77','PromotorSurB71','PromotorNorteA11','PromotorSurA78','PromotorSurB72')
+;
+
+-- INNER JOIN clave_promotor_cct_direccion mai
+--  ON pro.fidegar_key = mai.promotor1
+--  OR pro.fidegar_key = mai.promotor2
+-- INNER JOIN school_shift shi
+--  ON mai.clavecct = shi.key
+-- LEFT JOIN school_user use
+--  ON use.promoter_id = pro.id
+--  AND use.school_shift_id = shi.id
+--  AND use.school_key = shi.key
+
+SELECT * FROM promotores_mail_celular;
+SELECT * FROM school_user;
+SELECT * FROM schools WHERE lt IS NOT NULL AND lng IS NOT NULL;
+SELECT * FROM school_shift;
+SELECT * FROM basica_cct_x_inmueble;
+SELECT * FROM clave_promotor_cct_direccion;
+
+SELECT * FROM promoters;
+
+
+SELECT alcaldia, count(1) FROM promotor_enlace_alcaldia GROUP BY  alcaldia;
+SELECT * FROM promoters ;
+-- SELECT * FROM
+SELECT *  FROM promotor_enlace_alcaldia ;
+
+-- SELECT * FROM promoters pro
+
+ALTER TABLE promoters ADD COLUMN father_id integer;
+ALTER TABLE promoters ADD COLUMN municipality_id integer;
+CREATE TABLE promoters_enlace_alcaldia AS (
+  SELECT
+       use.id as user_id
+       , 'enlace' as fidegar_key
+       , 71       as created_by
+       , mun.id as municipality
+       , enl.telefono_app
+  FROM users use
+  INNER JOIN promotor_enlace_alcaldia enl
+   ON trim(enl.correo_electronico) = use.email
+  INNER JOIN municipalities mun
+   ON mun.municipality = enl.alcaldia
+  -- LEFT JOIN promoters  pro
+  --  ON use.id = pro.user_id
+)
+;
+
+SELECT * FROM users WHERE email = 'emil-zap.68@hotmail.com';
+
+-- INSERT INTO promoters(user_id, fidegar_key, created_by, municipality_id)
+-- SELECT
+--  user_id
+--  ,fidegar_key
+--  ,created_by
+-- --  ,telefono_app :: bigint
+--  ,municipality
+-- FROM promoters_enlace_alcaldia
+-- ;
+
+
+SELECT
+ shc.*
+FROM promoters pro
+INNER JOIN schools shc
+ ON pro.municipality_id = shc.municipality_id
+WHERE pro.user_id = 561
+;
+
+SELECT
+ *
+FROM school_shift shi
+INNER JOIN shifts fts
+ ON fts.id = shi.shift_id
+INNER JOIN levels lev
+ ON lev.id = shi.level_id
+WHERE shi.school_id IN (295,1643);
+      --name = 'DIEGO RIVERA BARRIENTOS'
+;
+
+SELECT
+ *
+FROM schools WHERE id IN(295,1643);
+SELECT * FROM schools WHERE name = 'TLAHUIZCALLI';
+SELECT * FROM schools sch INNER JOIN school_shift shi ON sch.id = shi.school_id WHERE shi.key = '09DPR2703S';
+SELECT * FROM promoters;
+SELECT * FROM users use INNER JOIN promoters prom ON use.id = prom.user_id;
+
+SELECT * FROM users WHERE email = 'admin@territorial';
+SELECT * FROM promoters;
+SELECT * FROM municipalities;
+-- INSERT INTO promoters (user_id, fidegar_key, created_by,municipality_id) VALUES (71,'enlace',71,6);
