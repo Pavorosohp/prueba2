@@ -784,18 +784,19 @@ SELECT * FROM projects WHERE active=true ORDER BY created_at;
 DROP TABLE IF EXISTS advance_entity_government;
 CREATE TABLE advance_entity_government(
   id bigserial
-  ,structure_id integer
-  ,poject_type_id integer
-  ,num_program integer
-  ,late integer
-  ,no_progress integer
-  ,in_process integer
-  ,concluded integer
-  ,num_goal integer
-  ,num_activity integer
-  ,num_task integer
-  ,num_progress integer
-  ,num_files integer
+  ,structure_id INTEGER DEFAULT 0
+  ,poject_type_id INTEGER DEFAULT 0
+  ,num_program INTEGER DEFAULT 0
+  ,late INTEGER DEFAULT 0
+  ,no_progress INTEGER DEFAULT 0
+  ,in_process INTEGER DEFAULT 0
+  ,concluded INTEGER DEFAULT 0
+  ,num_goal INTEGER DEFAULT 0
+  ,num_activity INTEGER DEFAULT 0
+  ,num_task INTEGER DEFAULT 0
+  ,num_progress INTEGER DEFAULT 0
+  ,num_files INTEGER DEFAULT 0
+  ,PRIMARY KEY (id)
 )
 ;
 
@@ -844,8 +845,8 @@ FROM (
        INNER JOIN project_types typ
         ON pro.type_id = typ.id
         WHERE
-          -- str.id = 3
---       AND
+          str.id = 3
+         AND
            str.active = true
          AND pro.active = true
          AND pro.jefatura = true
@@ -864,9 +865,33 @@ SELECT * FROM project_types;
 -- CONSULTA PARA OBTENER LOS DIFERENTES TIPOS DE ESTATUS
 SELECT * FROM statuses ORDER BY id;
 
+-- ================================================================================================================== --
+-- ================================================================================================================== --
+-- Consulta para obtener los programas de una estructura
+-- estructura ===>3 ADIP
+SELECT
+  str.id struc_id
+  ,str.structure
+  ,typ.id as project_type
+  ,pro.id
+  ,pro.project
+  ,pro.created_at :: date date_alta
+FROM structures str
+INNER JOIN owner_projects own
+ ON str.id = own.structure_id
+INNER JOIN projects pro
+ ON pro.id = own.project_id
+INNER JOIN project_types typ
+ ON pro.type_id = typ.id
+WHERE str.id = 26
+ AND str.active = true
+ AND pro.active = true
+ AND pro.jefatura = true
+ORDER BY str.id, pro.created_at::date, typ.id
+;
 
--- CONSULTA PARA OBTENER EL NUMERO DE METAS POR CADA ESTRUCTURA
--- DEPENDIENDO POR FECHA DE ALTA
+-- CONSULTA PARA OBTENER EL NUMERO DE PROGRAMAS POR CADA ESTRUCTURA
+-- DEPENDIENDO DE LA FECHA EN QUE LO DIERON DE ALTA
 SELECT
   str.id struc_id
   ,typ.id as project_type
@@ -879,67 +904,218 @@ INNER JOIN projects pro
  ON pro.id = own.project_id
 INNER JOIN project_types typ
  ON pro.type_id = typ.id
-WHERE
-    str.id = 3
-  AND
-    str.active = true
+WHERE str.active = true
   AND pro.active = true
   AND pro.jefatura = true
+  AND str.parent = 1
+  AND str.id = 6
 GROUP BY str.id, typ.id, pro.created_at ::date
 ORDER BY str.id, pro.created_at::date, typ.id
+;
 
--- CONSULTA PARA OBTENER EL NUMERO DE PROGRAMAS POR CADA ESTRUCTURA
--- DEPENDIENDO POR FECHA DE ALTA
-WITH tb_tmp_num_metas AS
-(
- SELECT
-  str.id                 struc_id
-  ,typ.id as              project_type
-  ,count(1)               num_goal
---   ,pro.created_at :: date date_alta
-  ,goa.created_at :: date date_alta_meta
- FROM structures str
- INNER JOIN owner_projects own
-  ON str.id = own.structure_id
- INNER JOIN projects pro
-  ON pro.id = own.project_id
- INNER JOIN project_types typ
-  ON pro.type_id = typ.id
- LEFT JOIN goals goa
-  ON pro.id = goa.project_id
- WHERE
-  str.id = 3
- AND
-  str.active = true
- AND pro.active = true
- AND pro.jefatura = true
- GROUP BY str.id, typ.id,
---           pro.created_at ::date
-       goa.created_at ::date
- ORDER BY str.id,
---           pro.created_at::date
-       goa.created_at::date
-          ,typ.id
-)
+-- Consulta para obtener los estatus de cada programa
 SELECT
- str.id
- ,str.structure
- ,typ.id
- ,typ.type
- ,tmp.num_goal
- ,tmp.date_alta_meta
- ,COUNT(1) num_programs
+  str.id struc_id
+  ,str.structure
+  ,typ.id as project_type
+  ,SUM(CASE sta.id WHEN 1 THEN 1 ELSE 0 END) con_retraso
+  ,SUM(CASE sta.id WHEN 2 THEN 1 ELSE 0 END) sin_avance
+  ,SUM(CASE sta.id WHEN 3 THEN 1 ELSE 0 END) en_proceso
+  ,SUM(CASE sta.id WHEN 4 THEN 1 ELSE 0 END) concluido
+  ,pro.created_at :: date date_alta
 FROM structures str
 INNER JOIN owner_projects own
  ON str.id = own.structure_id
 INNER JOIN projects pro
  ON pro.id = own.project_id
 INNER JOIN project_types typ
- ON pro.type_id = typ.id,
-tb_tmp_num_metas tmp
-WHERE tmp.struc_id = str.id
-AND tmp.project_type = typ.id
--- AND pro.created_at :: date = tmp.date_alta_meta
-GROUP BY  str.id, str.structure, typ.id, typ.type,tmp.num_goal,tmp.date_alta_meta
-ORDER BY str.id,tmp.date_alta_meta ::date,typ.id
+ ON pro.type_id = typ.id
+INNER JOIN statuses sta
+ ON pro.status_id = sta.id
+WHERE str.id = 26
+  AND str.active = true
+  AND pro.active = true
+  AND pro.jefatura = true
+  AND str.parent = 1
+GROUP BY str.id,str.structure,typ.id,pro.created_at :: date
+ORDER BY str.id, pro.created_at::date, typ.id
 ;
+
+-- Consulta para obtener el numero de metas por por fecha
+SELECT
+  str.id struc_id
+  ,str.structure
+  ,typ.id as project_type
+  ,goa.created_at :: date date_alta
+  ,COUNT(1) num_metas
+FROM structures str
+INNER JOIN owner_projects own
+ ON str.id = own.structure_id
+INNER JOIN projects pro
+ ON pro.id = own.project_id
+INNER JOIN project_types typ
+ ON pro.type_id = typ.id
+INNER JOIN goals goa
+ ON pro.id = goa.project_id
+WHERE str.active = true
+  AND pro.active = true
+  AND pro.jefatura = true
+  AND goa.active = true
+  AND str.parent = 1
+  AND str.id = 3
+GROUP BY  str.id, typ.id , str.structure ,goa.created_at :: date
+ORDER BY str.id, goa.created_at::date, typ.id
+;
+
+-- Consulta para obtener el numero de actividades por fecha
+SELECT
+  str.id struc_id
+  ,str.structure
+  ,typ.id as project_type
+  ,act.created_at :: date date_alta
+  ,COUNT(1) num_actividades
+FROM structures str
+INNER JOIN owner_projects own
+ ON str.id = own.structure_id
+INNER JOIN projects pro
+ ON pro.id = own.project_id
+INNER JOIN project_types typ
+ ON pro.type_id = typ.id
+INNER JOIN goals goa
+ ON pro.id = goa.project_id
+INNER JOIN activities act
+ ON pro.id = act.project_id
+ AND str.id = act.structure_id
+ AND goa.id = act.goal_id
+WHERE str.active = true
+  AND pro.active = true
+  AND pro.jefatura = true
+  AND goa.active = true
+  AND act.active = true
+  AND str.parent = 1
+  AND str.id = 3
+GROUP BY  str.id, typ.id , str.structure,act.created_at :: date
+ORDER BY str.id, act.created_at::date, typ.id
+;
+
+-- Consulta para obtener el numero de tareas por fecha
+SELECT
+  str.id struc_id
+  ,str.structure
+  ,typ.id as project_type
+  ,tas.created_at :: date
+  ,COUNT(1) num_tareas
+FROM structures str
+INNER JOIN owner_projects own
+ ON str.id = own.structure_id
+INNER JOIN projects pro
+ ON pro.id = own.project_id
+INNER JOIN project_types typ
+ ON pro.type_id = typ.id
+INNER JOIN goals goa
+ ON pro.id = goa.project_id
+INNER JOIN activities act
+ ON pro.id = act.project_id
+ AND str.id = act.structure_id
+ AND goa.id = act.goal_id
+INNER JOIN tasks tas
+ ON act.id = tas.activity_id
+ AND str.id = tas.structure_id
+WHERE str.active = true
+  AND pro.active = true
+  AND pro.jefatura = true
+  AND goa.active = true
+  AND act.active = true
+  AND tas.active = true
+  AND str.parent = 1
+  AND str.id = 6
+GROUP BY  str.id, typ.id , str.structure,tas.created_at :: date
+ORDER BY str.id,typ.id,tas.created_at ::date
+;
+
+-- Consulta para obtener el numero de seguimiento por fecha
+SELECT
+  str.id struc_id
+  ,str.structure
+  ,typ.id as project_type
+  ,gres.created_at :: date
+  ,COUNT(1) num_seguimiento
+FROM structures str
+INNER JOIN owner_projects own
+ ON str.id = own.structure_id
+INNER JOIN projects pro
+ ON pro.id = own.project_id
+INNER JOIN project_types typ
+ ON pro.type_id = typ.id
+INNER JOIN goals goa
+ ON pro.id = goa.project_id
+INNER JOIN activities act
+ ON pro.id = act.project_id
+ AND str.id = act.structure_id
+ AND goa.id = act.goal_id
+INNER JOIN tasks tas
+ ON act.id = tas.activity_id
+ AND str.id = tas.structure_id
+INNER JOIN progresses gres
+ ON act.id = gres.activity_id
+ AND tas.id = gres.task_id
+ AND str.id = gres.structure_id
+WHERE str.active = true
+  AND pro.active = true
+  AND pro.jefatura = true
+  AND goa.active = true
+  AND act.active = true
+  AND tas.active = true
+  AND gres.active = true
+  AND str.parent = 1
+  AND str.id = 6
+GROUP BY  str.id, typ.id ,str.structure,gres.created_at :: date
+ORDER BY str.id,typ.id,gres.created_at ::date
+;
+
+-- Consulta para obtener el numero de evidencia por fecha
+SELECT
+  str.id struc_id
+  ,str.structure
+  ,typ.id as project_type
+  ,fil.created_at :: date
+  ,COUNT(1) num_evidencia
+FROM structures str
+INNER JOIN owner_projects own
+ ON str.id = own.structure_id
+INNER JOIN projects pro
+ ON pro.id = own.project_id
+INNER JOIN project_types typ
+ ON pro.type_id = typ.id
+INNER JOIN goals goa
+ ON pro.id = goa.project_id
+INNER JOIN activities act
+ ON pro.id = act.project_id
+ AND str.id = act.structure_id
+ AND goa.id = act.goal_id
+INNER JOIN tasks tas
+ ON act.id = tas.activity_id
+ AND str.id = tas.structure_id
+INNER JOIN progresses gre
+ ON act.id = gre.activity_id
+ AND tas.id = gre.task_id
+ AND str.id = gre.structure_id
+INNER JOIN files fil
+ ON gre.id = fil.progress_id
+WHERE str.active = true
+  AND pro.active = true
+  AND pro.jefatura = true
+  AND goa.active = true
+  AND act.active = true
+  AND tas.active = true
+  AND gre.active = true
+  AND fil.active = true
+  AND str.parent = 1
+  AND str.id = 26
+GROUP BY  str.id, typ.id , str.structure
+       ,fil.created_at :: date
+ORDER BY str.id,typ.id
+       ,fil.created_at ::date
+;
+
+SELECT * FROM statuses ORDER BY id;
