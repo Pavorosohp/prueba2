@@ -23,7 +23,7 @@ CREATE TABLE escuela_basica(
   base text
 );
 
-COPY escuela_basica FROM '/home/gesif/Desktop/JefaturaGobierno/territorial/modulo_escuelas/archivos_csv/escuela_basica.csv' CSV HEADER ;
+COPY escuela_basica FROM '/home/pavon/Desktop/JefaturaGobierno/territorial/modulo_escuelas/archivos_csv/escuela_basica.csv' CSV HEADER ;
 -- COPY escuela_basica FROM '/home/gesif/Desktop/JefaturaGobierno/territorial/modulo_escuelas/archivos_csv/escuela_basica_nuevo.csv' CSV HEADER ;
 
 -- CONSULTA TABLA ESCUELA
@@ -147,7 +147,7 @@ CREATE TABLE basica_cct_x_inmueble (
  recuento text,
  num_alumnos text
 );
-COPY basica_cct_x_inmueble FROM '/home/gesif/Desktop/JefaturaGobierno/territorial/modulo_escuelas/archivos_csv/basica_cct_inmueble.csv' CSV HEADER ;
+COPY basica_cct_x_inmueble FROM '/home/pavon/Desktop/JefaturaGobierno/territorial/modulo_escuelas/archivos_csv/basica_cct_inmueble.csv' CSV HEADER ;
 -- COPY basica_cct_x_inmueble FROM '/home/gesif/Desktop/JefaturaGobierno/territorial/modulo_escuelas/archivos_csv/basica_cct_inmueble_nuevo.csv' CSV HEADER ;
 
 -- CONSULTA PARA LAS ESCUELAS
@@ -183,7 +183,7 @@ CREATE TABLE promotores_mail_celular (
   clave text,
   nombre_completo text
 );
-COPY promotores_mail_celular FROM '/home/gesif/Desktop/modulo_escuelas/archivos_csv/promotores_email_celular.csv' CSV HEADER;
+COPY promotores_mail_celular FROM '/home/pavon/Desktop/JefaturaGobierno/territorial/modulo_escuelas/archivos_csv/promotores_email.csv' CSV HEADER;
 
 -- CONSULTA PARA LOS PROMOTORES
 SELECT * FROM promotores_mail_celular;
@@ -263,7 +263,7 @@ CREATE TABLE clave_promotor_cct_direccion(
  aulas text,
  alumnos_inmueble text
 );
-COPY clave_promotor_cct_direccion FROM '/home/gesif/Desktop/modulo_escuelas/archivos_csv/clave_promotor_cct_direccion.csv' CSV HEADER;
+COPY clave_promotor_cct_direccion FROM '/home/pavon/Desktop/JefaturaGobierno/territorial/modulo_escuelas/archivos_csv/clave_promotor_cct_direccion.csv' CSV HEADER;
 
 -- Consulta para el cp
 SELECT count(1), length(cp) FROM clave_promotor_cct_direccion GROUP BY  length(cp);
@@ -302,6 +302,9 @@ SET alcaldia = TRIM(alcaldia)
 ;
 
 SELECT * FROM clave_promotor_cct_direccion;
+UPDATE clave_promotor_cct_direccion
+  SET clavecct = trim (clavecct)
+;
 
 -- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
 --                                      CARGA DE PADRONES DE ESCUELAS DE LA SEP                                     --
@@ -424,7 +427,7 @@ CREATE TABLE promotor_enlace_alcaldia (
   ,firma_recibido text
 );
 
-COPY promotor_enlace_alcaldia FROM '/home/gesif/Desktop/modulo_escuelas/archivos_csv/promotores_enlaces_alcaldia.csv' CSV HEADER;
+COPY promotor_enlace_alcaldia FROM '/home/pavon/Desktop/JefaturaGobierno/territorial/modulo_escuelas/archivos_csv/promotores_enlaces_alcaldia.csv' CSV HEADER;
 
 -- =====================================================================================================================
 -- SE ELIMINAN LOS ESPACIOS EN BLANCO
@@ -482,68 +485,11 @@ SELECT * FROM users WHERE lower(name) LIKE '%paul%';
 SELECT * FROM municipalities;
 
 -- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
---                                      PROCESO PARA GENERAR LA TABLA DE SCHOOLS                                    --
+--                                 PROCESO PARA AGREGAR LOS DOMICILOS A LAS ESCUELAS FALTANTES                      --
 -- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
-CREATE INDEX escuela_basica_domicilio ON escuela_basica (domicilio);
-CREATE INDEX escuela_basica_municipio ON escuela_basica (alcaldia);
-CREATE INDEX basica_cct_x_inmueble_domicilio ON basica_cct_x_inmueble (domicilio);
-
-SELECT COUNT(*) FROM schools;
-SELECT * FROM escuela_basica;
-SELECT * FROM basica_cct_x_inmueble;
-SELECT * FROM municipalities;
-SELECT * FROM clave_promotor_cct_direccion;
-
-SELECT COUNT(1), alcaldia FROM escuela_basica GROUP BY  alcaldia;
-SELECT * FROM escuela_basica ;
-SELECT * FROM padron_sep_primaria WHERE domicilio LIKE '%JAVIER ROJO GOMEZ NO 103%';
--- registros 2684
-DELETE FROM schools;
-ALTER SEQUENCE schools_id_seq RESTART  1;
--- =====================================================================================================================
--- SE INSERTA EN LA TABLA DE SCHOOLS
--- =====================================================================================================================
--- DELETE FROM schools WHERE id BETWEEN  3884 AND 3889;
--- ALTER SEQUENCE  schools_id_seq RESTART 3884;
-INSERT INTO schools(name,address,colony,municipality_id,phone,postal_code,lt,lng,point)
-  (
-    SELECT
-     bas.nombre_cct               as name
-     ,bas.domicilio                as address
-     ,esc.colonia                  as colony
-     ,COALESCE(mun.id,0)           as municipality_id
-     ,COALESCE(esc.tel::bigint, 0) as phone
-     ,esc.cp                       as postal_code
-     ,esc.y::double precision      as lt
-     ,esc.x::double precision      as lng
-     ,st_setsrid(st_makepoint(esc.x::double precision, esc.y::double precision), 4326)
-    FROM escuela_basica esc
-    INNER JOIN basica_cct_x_inmueble bas
-     ON esc.domicilio = bas.domicilio
-    LEFT JOIN municipalities mun
-     ON esc.alcaldia = mun.municipality
-    -- WHERE bas.cct IN ('09DBA0178Y','09DBS0034A')
-  )
-;
-
-SELECT * FROM schools ORDER BY id DESC;
-
--- =====================================================================================================================
--- CONSULTA PARA OBTENER EL CCT Y EL DOMICILIO DE LAS SECUNDARIAS TECNICAS
--- =====================================================================================================================
-
-SELECT
- *
- ,(select domicilio from basica_cct_x_inmueble bas WHERE bas.nombre_cct = nul.nombre_cct and bas.nivel = nul.nivel and bas.turno = 'MATUTINO')
- ,(select cct from basica_cct_x_inmueble bas WHERE bas.nombre_cct = nul.nombre_cct and bas.nivel = nul.nivel and bas.turno = 'MATUTINO')
-FROM basica_cct_domicilio_null nul
-WHERE nul.cct is null;
-;
-
 -- =====================================================================================================================
 -- SE CREA LA TABLA basica_cct_domicilio_null PARA OBTENER EL NUMERO DE REGISTROS NULL
 -- =====================================================================================================================
-
 -- REGISTROS QUE SON NULL 1200
 DROP TABLE IF EXISTS basica_cct_domicilio_null;
 
@@ -573,6 +519,19 @@ INSERT INTO basica_cct_domicilio_null (domicilio, nombre_cct,nivel,turno,recuent
     WHERE cct IS NULL
  )
 ;
+
+-- =====================================================================================================================
+-- CONSULTA PARA OBTENER EL CCT Y EL DOMICILIO DE LAS SECUNDARIAS TECNICAS
+-- =====================================================================================================================
+
+SELECT
+ *
+ ,(select domicilio from basica_cct_x_inmueble bas WHERE bas.nombre_cct = nul.nombre_cct and bas.nivel = nul.nivel and bas.turno = 'MATUTINO')
+ ,(select cct from basica_cct_x_inmueble bas WHERE bas.nombre_cct = nul.nombre_cct and bas.nivel = nul.nivel and bas.turno = 'MATUTINO')
+FROM basica_cct_domicilio_null nul
+WHERE nul.cct is null;
+;
+
 
 -- =====================================================================================================================
 -- SE ACTUALIZA LAS ESCUELAS SECUNDARIAS TECNICAS
@@ -874,8 +833,65 @@ FROM
 WHERE basica_cct_x_inmueble.domicilio IS NULL
 AND b.nombre_cct = basica_cct_x_inmueble.nombre_cct
 ;
+--DELETE FROM basica_cct_x_inmueble WHERE domicilio IS NOT NULL;
+SELECT
+ *
+FROM basica_cct_x_inmueble bas
+ JOIN schools sch
+ ON bas.domicilio = sch.address
+-- WHERE sch.id IS  NULL
+;
 
+-- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
+--                                      PROCESO PARA GENERAR LA TABLA DE SCHOOLS                                    --
+-- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
+CREATE INDEX escuela_basica_domicilio ON escuela_basica (domicilio);
+CREATE INDEX escuela_basica_municipio ON escuela_basica (alcaldia);
+CREATE INDEX basica_cct_x_inmueble_domicilio ON basica_cct_x_inmueble (domicilio);
 
+SELECT COUNT(*) FROM schools;
+SELECT * FROM escuela_basica;
+SELECT COUNT(*) FROM basica_cct_x_inmueble WHERE domicilio IS NOT NULL;
+SELECT * FROM municipalities;
+SELECT * FROM clave_promotor_cct_direccion;
+
+SELECT COUNT(1), alcaldia FROM escuela_basica GROUP BY  alcaldia;
+SELECT COUNT(*) FROM escuela_basica ;
+SELECT * FROM padron_sep_primaria WHERE domicilio LIKE '%JAVIER ROJO GOMEZ NO 103%';
+-- registros 2684
+DELETE FROM schools;
+ALTER SEQUENCE schools_id_seq RESTART  1;
+
+-- =====================================================================================================================
+-- SE INSERTA EN LA TABLA DE SCHOOLS
+-- =====================================================================================================================
+-- DELETE FROM schools WHERE id BETWEEN  3884 AND 3889;
+-- ALTER SEQUENCE  schools_id_seq RESTART 3884;
+INSERT INTO schools(name,address,colony,municipality_id,phone,postal_code,lt,lng,point)
+  (
+    SELECT
+     bas.nombre_cct               as name
+     ,bas.domicilio                as address
+     ,esc.colonia                  as colony
+     ,COALESCE(mun.id,0)           as municipality_id
+     ,COALESCE(esc.tel::bigint, 0) as phone
+     ,esc.cp                       as postal_code
+     ,esc.y::double precision      as lt
+     ,esc.x::double precision      as lng
+     ,st_setsrid(st_makepoint(esc.x::double precision, esc.y::double precision), 4326)
+    FROM escuela_basica esc
+    INNER JOIN basica_cct_x_inmueble bas
+     ON esc.domicilio = bas.domicilio
+    LEFT JOIN municipalities mun
+     ON esc.alcaldia = mun.municipality
+--     WHERE bas.nombre_cct = 'FLORENCIO M DEL CASTILLO'
+    GROUP BY bas.nombre_cct,bas.domicilio,esc.colonia,COALESCE(mun.id,0)
+           ,COALESCE(esc.tel::bigint, 0),esc.cp,esc.y::double precision,esc.x::double precision,st_setsrid(st_makepoint(esc.x::double precision, esc.y::double precision), 4326)
+    -- WHERE bas.cct IN ('09DBA0178Y','09DBS0034A')
+  )
+;
+
+SELECT * FROM schools ORDER BY id DESC;
 
 -- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
 --                                 PROCESO PARA GENERAR LA TABLA DE SCHOOL_SHIFT                                    --
@@ -885,33 +901,38 @@ AND b.nombre_cct = basica_cct_x_inmueble.nombre_cct
 -- =====================================================================================================================
 DELETE FROM school_shift;
 ALTER SEQUENCE school_shift_id_seq RESTART 1;
+-- SELECT * FROM schools WHERE name = 'FLORENCIO M DEL CASTILLO';
 INSERT INTO school_shift (school_id,key,number_student_shift,shift_id,level_id)
   (
     SELECT
      sch.id
-     ,
-     bas.cct
+     ,bas.cct
 --      ,bas.nombre_cct
      ,bas.num_alumnos ::int
      ,shi.id as shift_id
 --      ,shi.shift
      ,lev.id as level_id
 --      ,lev.level
-    FROM basica_cct_x_inmueble bas
-    INNER JOIN schools sch
-     ON sch.address = bas.domicilio
-    INNER JOIN levels lev
+      FROM basica_cct_x_inmueble bas
+      INNER JOIN schools sch
+          ON bas.nombre_cct = sch.name
+          AND bas.domicilio  = sch.address
+    LEFT JOIN levels lev
      ON lev.level = bas.nivel
-    INNER JOIN shifts shi ON shi.shift = bas.turno
---     WHERE bas.nombre_cct = 'DIEGO RIVERA BARRIENTOS'
+    LEFT JOIN shifts shi ON shi.shift = bas.turno
+--     WHERE bas.nombre_cct = 'FLORENCIO M DEL CASTILLO'
     ORDER BY shi.id
   )
 ;
+-- UPDATE school_shift
+-- FROM schools sch
+-- INNER JOIN
 
+SELECT * FROM shifts;
 -- UPDATE basica_cct_x_inmueble SET nivel = 'PREESCOLAR' WHERE nivel IS NULL;
-SELECT * FROM schools ORDER BY  id DESC LIMIT 10;
-SELECT * FROM school_shift ORDER BY id DESC LIMIT 10;
-DELETE FROM schools WHERE id IN(384,385,386);
+SELECT COUNT(*) FROM schools -- ORDER BY  id DESC LIMIT 10;
+SELECT COUNT(*) FROM school_shift --ORDER BY id DESC LIMIT 10;
+-- DELETE FROM schools WHERE id IN(384,385,386);
 SELECT * FROM schools WHERE id = 3887;
 SELECT * FROM basica_cct_x_inmueble;
 
@@ -1021,16 +1042,18 @@ INSERT INTO users (name,email,paterno,materno,phone,password)
      ,pro.celular::bigint
      ,b.password
     FROM promotores_mail_celular pro
-    LEFT JOIN users use
+    INNER JOIN users use
      ON use.email = pro.correo_electronico
     ,(SELECT password FROM users WHERE email = 'admin@territorial') as b
-    WHERE use.id IS NULL
+--     WHERE use.id IS NULL
   )
 ;
 
 -- =====================================================================================================================
 --- Se inserta en la tabla de promotores
 -- =====================================================================================================================
+DELETE FROM promoters;
+ALTER SEQUENCE promoters_id_seq RESTART 1;
 INSERT INTO promoters(user_id,fidegar_key,created_by)
   (
     SELECT
@@ -1043,7 +1066,27 @@ INSERT INTO promoters(user_id,fidegar_key,created_by)
   )
 ;
 
+INSERT INTO promoters(user_id,fidegar_key,created_by,municipality_id)
+(
+  SELECT
+       use.id as user_id
+       , 'enlace' as fidegar_key
+       , 71       as created_by
+       , mun.id as municipality
+--        , enl.telefono_app
+  FROM users use
+  INNER JOIN promotor_enlace_alcaldia enl
+   ON trim(enl.correo_electronico) = use.email
+  INNER JOIN municipalities mun
+   ON mun.municipality = enl.alcaldia
+  -- LEFT JOIN promoters  pro
+  --  ON use.id = pro.user_id
+)
+;
+
+SELECT COUNT(*) FROM promoters ;
 -- SELECT * FROM promoters WHERE fidegar_key = 'PromotorNorteA7';
+
 -- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
 --                               PROCESO PARA INSERTAR EN LA TABLA DE SCHOOL_USER                                   --
 -- //////////////////////////////////////////////////////////////////////////////////////////////////////////////// --
@@ -1051,6 +1094,8 @@ INSERT INTO promoters(user_id,fidegar_key,created_by)
 -- ====================================================================================================================
 -- Insert para la tabla de school_user para el promotor 1
 -- ====================================================================================================================
+DELETE FROM school_user;
+ALTER SEQUENCE school_user_id_seq RESTART 1;
 INSERT INTO school_user (promoter_id, school_key, school_shift_id)
 (
   SELECT
@@ -1100,6 +1145,8 @@ INSERT INTO school_user (promoter_id, school_key, school_shift_id)
 SELECT * FROM shifts;
 INSERT INTO shifts (shift,created_at,updated_at) VALUES ('DISCONTINUO',now(),now()),('MIXTO',now(),now());
 UPDATE shifts SET created_at = now() , updated_at = now() WHERE id IN (6,7);
+-- SELECT * FROM levels;
+-- INSERT INTO levels (level) VALUES (''),('');
 
 SELECT
   mot.id as promoter_id_1
@@ -1151,34 +1198,10 @@ SELECT *  FROM promotor_enlace_alcaldia ;
 
 ALTER TABLE promoters ADD COLUMN father_id integer;
 ALTER TABLE promoters ADD COLUMN municipality_id integer;
-CREATE TABLE promoters_enlace_alcaldia AS (
-  SELECT
-       use.id as user_id
-       , 'enlace' as fidegar_key
-       , 71       as created_by
-       , mun.id as municipality
-       , enl.telefono_app
-  FROM users use
-  INNER JOIN promotor_enlace_alcaldia enl
-   ON trim(enl.correo_electronico) = use.email
-  INNER JOIN municipalities mun
-   ON mun.municipality = enl.alcaldia
-  -- LEFT JOIN promoters  pro
-  --  ON use.id = pro.user_id
-)
-;
+-- CREATE TABLE promoters_enlace_alcaldia AS
+
 
 SELECT * FROM users WHERE email = 'emil-zap.68@hotmail.com';
-
--- INSERT INTO promoters(user_id, fidegar_key, created_by, municipality_id)
--- SELECT
---  user_id
---  ,fidegar_key
---  ,created_by
--- --  ,telefono_app :: bigint
---  ,municipality
--- FROM promoters_enlace_alcaldia
--- ;
 
 
 SELECT
@@ -1196,8 +1219,9 @@ INNER JOIN shifts fts
  ON fts.id = shi.shift_id
 INNER JOIN levels lev
  ON lev.id = shi.level_id
-WHERE shi.school_id IN (295,1643);
-      --name = 'DIEGO RIVERA BARRIENTOS'
+WHERE
+      shi.school_id IN (295,1643);
+--       name = 'DIEGO RIVERA BARRIENTOS'
 ;
 
 SELECT
@@ -1205,10 +1229,128 @@ SELECT
 FROM schools WHERE id IN(295,1643);
 SELECT * FROM schools WHERE name = 'TLAHUIZCALLI';
 SELECT * FROM schools sch INNER JOIN school_shift shi ON sch.id = shi.school_id WHERE shi.key = '09DPR2703S';
-SELECT * FROM promoters;
+SELECT * FROM promoters ;
 SELECT * FROM users use INNER JOIN promoters prom ON use.id = prom.user_id;
 
 SELECT * FROM users WHERE email = 'admin@territorial';
 SELECT * FROM promoters;
 SELECT * FROM municipalities;
 -- INSERT INTO promoters (user_id, fidegar_key, created_by,municipality_id) VALUES (71,'enlace',71,6);
+
+SELECT * FROM municipalities;
+SELECT * FROM schools WHERe municipality_id = 14;
+SELECT * FROM promoters WHERE user_id = 326;
+SELECT * FROM users WHERE email LIKE 'jdn.72%';
+SELECT * FROM shifts;
+-- INSERT INTO shifts(shift) VALUES ('DISCONTINUO'),('MIXTO');
+SELECT * FROM schools WHERE lower(name) like '%florencio%';
+SELECT * FROM schools sch INNER JOIN promoters pro ON sch.municipality_id = pro.municipality_id WHERE pro.municipality_id = 14;
+SELECT * FROM promoters WHERE user_id= '326';
+SELECT shi.*,lev.level
+,fts.shift
+FROM school_shift shi
+INNER JOIN levels lev
+  ON lev.id = shi.level_id
+INNER JOIN shifts fts
+ ON shi.shift_id = fts.id
+WHERE key = '09DBN0056R';
+
+-- USUARIO adelsspcmih70@gmail.com
+
+-- ESCUELA COSTA RICA NOCTURNO
+SELECT
+  *
+FROM users use
+INNER JOIN promoters pro ON use.id = pro.user_id WHERE use.email = 'adelsspcmih70@gmail.com';
+
+SELECT
+ p.*
+ ,s.*
+ ,i.*
+ ,l.level
+ ,h.shift
+ ,c.*
+FROM promoters p
+INNER JOIN school_user s
+  ON  p.id = s.promoter_id
+INNER JOIN school_shift i
+ ON i.id = s.school_shift_id
+INNER JOIN schools c
+ ON c.id = i.school_id
+INNER JOIN levels l
+ ON i.level_id = l.id
+INNER JOIN shifts h
+ ON i.shift_id = h.id
+WHERE p.fidegar_key='PromotorNorteA99'
+ AND (c.name LIKE 'EL PIPILA'
+  OR i.key = '09DBN0056R'
+  )
+;
+
+-- USUARIO JUDITH
+SELECT
+ p.*
+ ,s.*
+FROM promoters p
+INNER JOIN users u
+ ON u.id = p.user_id
+INNER JOIN school_user s
+ ON p.id = s.promoter_id
+WHERE u.email = 'jdn.72@hotmail.com'
+;
+SELECT * FROM school_shift i INNER JOIN schools s ON i.school_id = s.id WHERE i.key ='09DPR2415Z' ;
+-- SELECT *
+INSERT INTO school_user (promoter_id,school_key,school_shift_id)
+SELECT
+  35
+  ,i.key
+  ,i.id
+FROM school_shift i
+WHERE key IN('09DPR2539I',
+'09DES0103D',
+'09DPR2144Y',
+'09DES0003E',
+'09DPR2538J',
+'09DES0023S',
+'09DPR1338E',
+'09DJN0826Y',
+'09DJN0767Z',
+'09DPR2515Z',
+'09DJN0751Y',
+'09DPR2701U',
+'09DSN0004L',
+'09DES0026P',
+'09DES4026Q',
+'09DBN0027W',
+'09DPR2415Z',
+'09DPR3176X'
+)
+GROUP BY  i,key,i.id
+-- WHERE u.email = 'jdn.72@hotmail.com'
+;
+
+SELECT * FROM school_user;
+-- WHERE fidegar_key = 'enlace' AND municipality_id = 14 ;
+
+SELECT * FROM school_user s INNER JOIN promoters p ON p.id = s.promoter_id INNER JOIN users u ON u.id = p.user_id
+WHERE u.email = 'oswaldoperete@gmail.com'
+AND s.school_key= '09DML0072Q'
+;
+-- DROP TABLE promoters;
+-- DROP TABLE schools;
+-- DROP TABLE school_shift;
+SELECT * FROM municipalities;
+SELECT (*) FROM school_shift;
+SELECT * FROM schools WHERE address LIKE 'SERAPIO RENDON NO 48';
+SELECT * FROM basica_cct_x_inmueble WHERE nombre_cct LIKE '%FLORENCIO M DEL CASTILLO%';
+
+SELECT s.*,l.level,s2.shift FROM school_shift s INNER JOIN levels l ON l.id = s.level_id INNER JOIN shifts s2 on s.shift_id = s2.id WHERE key IN('09DBN0027W','09DPR2415Z','09DPR3176X');
+
+SELECT * FROM promoters p INNER JOIN users u ON u.id = p.user_id INNER JOIN schools s ON p.municipality_id = s.municipality_id
+WHERE
+  p.municipality_id = 10;
+--       u.email = 'emil-zap.68@hotmail.com'
+--   AND s.name LIKE '%TL%'
+;
+
+-- WHERE p.fidegar_key= 'PromotorSurB16';
